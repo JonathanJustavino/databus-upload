@@ -6,27 +6,12 @@ from api_calls import API
 from dotenv import load_dotenv
 
 
-# records = wrapper.list_all_deposits()
-# print(records)
-
-# deposit_id = 10817144
-
-# deposit = wrapper.get_files_of_deposit(deposit_id)
-# print(json.dumps(deposit, indent=4))
-
-# deposit = wrapper.get_deposit(deposit_id)
-# print(json.dumps(deposit, indent=4))
-
-# wrapper.upload_file(deposit_id, "./rli_dibt_windzone_vg_variant.json")
-
-# deposit = wrapper.get_deposit(deposit_id)
-# print(json.dumps(deposit, indent=4))
-
 def setup_parser():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('-c', '--create_deposit', action="store_true",
                         help="Create a new Deposit")
     parser.add_argument('-d', '--deposit', help="Retrieve a deposit by id")
+    parser.add_argument('-dl', '--download', help="List all download links of files in a Deposit")
     parser.add_argument('-f', '--files', help="List all files of a Deposit")
     parser.add_argument('-u', '--upload', help="Upload a file to a Deposit")
     parser.add_argument('-s', '--update', help="Update a Deposit")
@@ -57,10 +42,6 @@ if __name__ == '__main__':
     parser = setup_parser()
     args = parser.parse_args()
     api = setup_api()
-    if args.deposit:
-        depo_id = parse_id(args.deposit)
-        response = api.get_deposit(depo_id)
-        print(response)
     if args.create_deposit:
         response = api.create_deposit()
         print(response)
@@ -82,3 +63,10 @@ if __name__ == '__main__':
         api.list_all_deposits()
     if args.upload:
         api.list_all_deposits()
+    if args.download:
+        depo_id = parse_id(args.download)
+        api.get_download_links(depo_id)
+    if args.deposit:
+        depo_id = parse_id(args.deposit)
+        response = api.get_deposit(depo_id)
+        print(response)

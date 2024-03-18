@@ -21,7 +21,10 @@ class API:
         ]
 
     def default_info(self):
-        info = "{metadata:{ title: My generated Depot, upload_type: presentation, description: This is my first upload, creators: [ {name: Python, Script, affiliation: Zeno} ], }}"
+        info = "{metadata:{ title: My generated Depot, \
+                upload_type: presentation, \
+                description: This is my first upload,\
+                creators: [ {name: Python, Script, affiliation: Zeno} ], }}"
         return info
 
     def json_content_header(self):
@@ -37,7 +40,7 @@ class API:
     def build_deposit_url(self, *args):
         deposit_url = self.build_url("deposit", "depositions", *args)
         return deposit_url
-    
+
     def build_file_url(self, deposit_id, *args):
         deposit_url = self.build_deposit_url(deposit_id, "files", *args)
         return deposit_url
@@ -53,9 +56,6 @@ class API:
 
         for record in data:
             print(record)
-            # for field in self.fields:
-            #     print(field)
-            #     print(json.dumps(record[field], indent=2))
 
     def create_deposit(self, metadata=None):
         if not metadata:
@@ -104,6 +104,18 @@ class API:
         url = self.authenticate(route)
         req = requests.get(url)
         return req.json()
+
+    def get_download_links(self, deposit_id, link_key="links"):
+        def unwrap(item):
+            infos = {}
+            infos["downloadURL"] = item["links"]["download"]
+            infos["id"] = item["id"]
+            infos["filename"] = item["filename"]
+            return infos
+
+        data = self.get_files_of_deposit(deposit_id)
+        links = list(map(unwrap, data))
+        return links
 
     def upload_file(self, deposit_id, file_path):
         if not path.exists(file_path):
