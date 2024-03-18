@@ -1,24 +1,23 @@
 import os
 import json
+# import pyld
 import curlify
 import requests
 from os import path
 from dataclasses import dataclass
+import datetime
 
 
 @dataclass
 class API:
     token: str
+    databus_token: str
     sandbox = "https://sandbox.zenodo.org/"
     endpoint = "https://zenodo.org/api/"
 
-    def __init__(self, token) -> None:
+    def __init__(self, token, databus_token) -> None:
         self.token = token
-        self.fields = [
-            "id",
-            "links",
-            "files"
-        ]
+        self.databus_token = databus_token
 
     def default_info(self):
         info = "{metadata:{ title: My generated Depot, \
@@ -105,17 +104,36 @@ class API:
         req = requests.get(url)
         return req.json()
 
-    def get_download_links(self, deposit_id, link_key="links"):
-        def unwrap(item):
-            infos = {}
-            infos["downloadURL"] = item["links"]["download"]
-            infos["id"] = item["id"]
-            infos["filename"] = item["filename"]
-            return infos
+    def _get_extension(self, filename):
+        res = os.path.splitext(filename)[1]
+        return res[1:]
 
-        data = self.get_files_of_deposit(deposit_id)
-        links = list(map(unwrap, data))
-        return links
+    def get_download_links(self, deposit_id):
+        base_path = path.join(path.expanduser("~"), "Downloads", "zenodo")
+        files = self.get_files_of_deposit(deposit_id)
+        success = []
+        errors = []
+        for file in files:
+            url = file["links"]["download"]
+            response = requests.get(self.authenticate(url))
+            name = file["filename"]
+            if not response.ok:
+                file_info = {
+                    "name": name,
+                    "downloadURL": url,
+                }
+                errors.append(file_info)
+                continue
+            file_info = {
+                "name": name,
+                "formatExtension": self._get_extension(name),
+                "compression": "None",
+                "downloadURL": url,
+             }
+            success.append(file_info)
+            with open(path.join(base_path, name), "wb") as f:
+                f.write(response.content)
+        return {"success": success, "error": errors}
 
     def upload_file(self, deposit_id, file_path):
         if not path.exists(file_path):
@@ -123,43 +141,115 @@ class API:
         if not path.isfile(file_path):
             raise FileNotFoundError
 
+        deposit = self.get_deposit(deposit_id)
+        file_path = path.join(path.expanduser('~'),
+                              "Documents/workspace/whk/zenodo/abc.jsonld")
         deposit_id = str(deposit_id)
-        header = self.multipart_content_header()
-        route = self.build_file_url(deposit_id)
-        print(route)
-
-        url = self.authenticate(route)
+        bucket_link = deposit["links"]["bucket"]
 
         _, file_name = path.split(file_path)
-        print(file_name)
-        fp = path.join(os.getcwd(), file_name)
-        print(fp)
+        route = f"{bucket_link}/{file_name}"
+        url = self.authenticate(route)
 
-        files = {
-            'name': (None, file_name),
-            'file': open(fp, "rb")
+        with open(file_path, "rb") as fp:
+            params = {"-X": "PUT"}
+            req = requests.put(url, data=fp, params=params)
+            response = req.json()
+            print(json.dumps(response, indent=4))
+
+    def collect_for_databus(self, depo_id):
+        depo_info = self.get_deposit(depo_id)
+        dlinks = self.get_download_links(depo_id)
+        version = datetime.datetime.fromisoformat(depo_info["created"])
+        hasVersion = version.strftime("%Y-%m-%d")
+        metadata = depo_info["metadata"]
+        description = metadata["description"]
+        title = metadata["title"]
+        license = metadata["license"]
+        id = depo_info["id"]
+        username = "prototype"
+        id = f"https://dev.databus.dbpedia.org/{username}/test_group/test_artifact_{id}/2022-02-09"
+
+        context = depo_info["links"]["self"]
+
+        def process(item):
+            processed = {
+                "@type":  "Part",
+                "compression": "none",
+                "formatExtension": item["formatExtension"],
+                "downloadURL": self.authenticate(item['downloadURL'])
+            }
+            return processed
+
+        distribution = list(map(process, dlinks["success"]))
+
+        response = self.to_databus(context, id, hasVersion, title,
+                                   description, license, distribution)
+        return response
+
+    def to_databus(self, context, id, hasVersion, title, description,
+                   license, distribution, type="Version"):
+
+        databus_url = 'https://dev.databus.dbpedia.org/api/publish?fetch-file-properties=true&log-level=debug'
+        context = "https://dev.databus.dbpedia.org/res/context.jsonld"
+
+        # TODO: how to convert to url
+        license = "https://creativecommons.org/licenses/by/4.0/"
+
+        header = {
+            "Accept": "application/json",
+            "X-API-KEY": self.databus_token,
+            "Content-Type": "application/ld+json"
         }
 
-        params = {"-X": "POST"}
+        data = {
+            "@context": context,
+            "@graph": [
+                {
+                    "@type": type,
+                    "@id": id,
+                    "hasVersion": hasVersion,
+                    "title": title,
+                    "description": description,
+                    "license": license,
+                    "distribution": distribution,
+                }
+            ]
+        }
 
-        print(url)
-        req = requests.post(url, headers=header, files=files, params=params)
-        print(requests.post(url, headers=header, files=files, params=params))
-        response = req.json()
-        print(json.dumps(response, indent=4))
+        response = requests.post(databus_url, headers=header,
+                                 data=json.dumps(data))
+        print(json.dumps(response.content, indent=2))
+        return response
 
 
-# curl -i -H "Content-Type: application/json"
-# -X PUT 
-# --data '{"metadata": 
-#             {"title": "My first upload", 
-#             "upload_type": "poster", 
-#             "description": "This is my first upload",
-#             "arbitrary": "some more additional metadata",
-#             "creators": [
-#                 {"name": "Doe, John",
-#                 "affiliation": "Zenodo"}
-#             ]
+# curl -X 'POST' \
+#   'https://dev.databus.dbpedia.org/api/publish?fetch-file-properties=true&log-level=info' \
+#   -H 'accept: application/json' \
+#   -H 'X-API-KEY: <your API key>' \
+#   -H 'Content-Type: application/ld+json' \
+#   -d '{
+#   "@context": "https://downloads.dbpedia.org/databus/context.jsonld",
+#   "@graph": [
+#     {
+#       "@type": [
+#         "Version",
+#         "Dataset"
+#       ],
+#       "@id": "https://dev.databus.dbpedia.org/<your username>/test_group/test_artifact/2023-06-13",
+#       "hasVersion": "2023-06-13",
+#       "title": "test dataset",
+#       "abstract": "test dataset abstract",
+#       "description": "test dataset description",
+#       "license": "https://dalicc.net/licenselibrary/Apache-2.0",
+#       "distribution": [
+#         {
+#           "@type": "Part",
+#           "formatExtension": "md",
+#           "compression": "none",
+#           "downloadURL": "https://raw.githubusercontent.com/dbpedia/databus/68f976e29e2db15472f1b664a6fd5807b88d1370/README.md"
 #         }
-#     }' 
-# https://zenodo.org/api/deposit/depositions/10817080\?access_token\=iVkHh6aGfWIOlgy1XcCx3SvBqtFS4XJhlL8yomqoZuzGGjO9ga0PsCIS53DI
+#       ]
+#     }
+#   ]
+# }'
