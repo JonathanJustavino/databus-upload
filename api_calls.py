@@ -192,9 +192,7 @@ class API:
                 "@type":  "Part",
                 "compression": "none",
                 "formatExtension": item["formatExtension"],
-                # FIXME: How to handle downloadURL without exposing it? Using
-                # the DL without the token results in a 403
-                "downloadURL": self.authenticate(item['downloadURL'])
+                "downloadURL": item['downloadURL']
             }
             return processed
 
