@@ -1,17 +1,27 @@
 import os
 import json
-# import pyld
 import curlify
 import requests
 from os import path
 from dataclasses import dataclass
 import datetime
+from dotenv import load_dotenv
+
+
+def setup_api():
+    load_dotenv()
+    api_key = os.getenv("ACCESS_TOKEN")
+    databus_api_key = os.getenv("DATABUS_API_KEY")
+    wrapper = API(api_key, databus_api_key)
+    return wrapper
 
 
 @dataclass
 class API:
     token: str
     databus_token: str
+    databus_endpoint = 'https://dev.databus.dbpedia.org/api/publish?fetch-file-properties=true&log-level=debug'
+    context_url = "https://dev.databus.dbpedia.org/res/context.jsonld"
     sandbox = "https://sandbox.zenodo.org/"
     endpoint = "https://zenodo.org/api/"
 
@@ -48,7 +58,7 @@ class API:
         return f"{url}?access_token={self.token}"
 
     def list_all_deposits(self):
-        route = self.build_url("deposit", "depositions")
+        route = self.build_deposit_url()
         url = self.authenticate(route)
         req = requests.get(url)
         data = req.json()
@@ -177,6 +187,8 @@ class API:
                 "@type":  "Part",
                 "compression": "none",
                 "formatExtension": item["formatExtension"],
+                # FIXME: How to handle downloadURL without exposing it? Using
+                # the DL without the token results in a 403
                 "downloadURL": self.authenticate(item['downloadURL'])
             }
             return processed
@@ -190,9 +202,6 @@ class API:
     def to_databus(self, context, id, hasVersion, title, description,
                    license, distribution, type="Version"):
 
-        databus_url = 'https://dev.databus.dbpedia.org/api/publish?fetch-file-properties=true&log-level=debug'
-        context = "https://dev.databus.dbpedia.org/res/context.jsonld"
-
         # TODO: how to convert to url
         license = "https://creativecommons.org/licenses/by/4.0/"
 
@@ -203,7 +212,7 @@ class API:
         }
 
         data = {
-            "@context": context,
+            "@context": self.context_url,
             "@graph": [
                 {
                     "@type": type,
@@ -217,7 +226,7 @@ class API:
             ]
         }
 
-        response = requests.post(databus_url, headers=header,
+        response = requests.post(self.databus_endpoint, headers=header,
                                  data=json.dumps(data))
         print(json.dumps(response.content, indent=2))
         return response
