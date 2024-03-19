@@ -20,7 +20,8 @@ def setup_api():
 class API:
     token: str
     databus_token: str
-    databus_endpoint = 'https://dev.databus.dbpedia.org/api/publish?fetch-file-properties=true&log-level=debug'
+    databus_endpoint = """https://dev.databus.dbpedia.org/api/publish
+                            ?fetch-file-properties=true&log-level=debug"""
     context_url = "https://dev.databus.dbpedia.org/res/context.jsonld"
     sandbox = "https://sandbox.zenodo.org/"
     endpoint = "https://zenodo.org/api/"
@@ -178,7 +179,11 @@ class API:
         license = metadata["license"]
         id = depo_info["id"]
         username = "prototype"
-        id = f"https://dev.databus.dbpedia.org/{username}/test_group/test_artifact_{id}/2022-02-09"
+        id = f"""
+            https://dev.databus.dbpedia.org/
+            {username}/test_group/
+            test_artifact_{id}/2022-02-09
+        """
 
         context = depo_info["links"]["self"]
 
@@ -233,7 +238,8 @@ class API:
 
 
 # curl -X 'POST' \
-#   'https://dev.databus.dbpedia.org/api/publish?fetch-file-properties=true&log-level=info' \
+#   'https://dev.databus.dbpedia.org/api/publish\
+#            ?fetch-file-properties=true&log-level=info' \
 #   -H 'accept: application/json' \
 #   -H 'X-API-KEY: <your API key>' \
 #   -H 'Content-Type: application/ld+json' \
@@ -245,7 +251,8 @@ class API:
 #         "Version",
 #         "Dataset"
 #       ],
-#       "@id": "https://dev.databus.dbpedia.org/<your username>/test_group/test_artifact/2023-06-13",
+#       "@id": "https://dev.databus.dbpedia.org/
+#               <your username>/test_group/test_artifact/2023-06-13",
 #       "hasVersion": "2023-06-13",
 #       "title": "test dataset",
 #       "abstract": "test dataset abstract",
@@ -256,7 +263,8 @@ class API:
 #           "@type": "Part",
 #           "formatExtension": "md",
 #           "compression": "none",
-#           "downloadURL": "https://raw.githubusercontent.com/dbpedia/databus/68f976e29e2db15472f1b664a6fd5807b88d1370/README.md"
+#           "downloadURL": "https://raw.githubusercontent.com/dbpedia/databus/\
+#                            68f976e29e2db15472f1b664a6fd5807b88d1370/README.md"
 #         }
 #       ]
 #     }
