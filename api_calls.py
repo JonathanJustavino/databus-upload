@@ -1,4 +1,3 @@
-from cProfile import label
 import os
 import json
 import curlify
@@ -21,8 +20,7 @@ def setup_api():
 class API:
     token: str
     databus_token: str
-    databus_endpoint = """https://dev.databus.dbpedia.org/api/publish
-                            ?fetch-file-properties=true&log-level=debug"""
+    databus_endpoint = "https://dev.databus.dbpedia.org/api/publish?fetch-file-properties=true&log-level=debug"
     context_url = "https://dev.databus.dbpedia.org/res/context.jsonld"
     sandbox = "https://sandbox.zenodo.org/"
     endpoint = "https://zenodo.org/api/"
@@ -33,7 +31,6 @@ class API:
 
     def default_info(self):
         docu_info = '{"metadata": {"title": "My first upload", "upload_type": "poster", "description": "This is my first upload", "creators": [{"name": "Doe, John", "affiliation": "Zenodo"}]}}'
-        # info = '{\"metadata\":{ \"title\": \"My generated Depot\", \"upload_type\": \"presentation\", \"description\": \"This is my first upload\", \ \"creators\": [ {\"name\": \"Python, Script\", \"affiliation\": \"Zeno\"} ], }}'
         return docu_info
 
     def json_content_header(self):
@@ -256,7 +253,8 @@ class API:
 
         response = requests.post(self.databus_endpoint, headers=header,
                                  data=json.dumps(data))
-        print(json.dumps(response.content, indent=2))
+        # print(json.dumps(response.content, indent=2))
+        print(curlify.to_curl(response.request))
         return response
 
     def collect_files(self, directory):
@@ -279,9 +277,9 @@ class API:
         if not depo_id:
             """2"""
             info = self.create_deposit()
-            print(info)
             """3"""
             depo_id = info["id"]
+            self.update_deposit(depo_id)
         """4"""
         file_reports = []
         current_file = ""
