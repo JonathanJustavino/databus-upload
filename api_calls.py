@@ -1,3 +1,4 @@
+from cProfile import label
 import os
 import json
 import curlify
@@ -31,11 +32,9 @@ class API:
         self.databus_token = databus_token
 
     def default_info(self):
-        info = "{metadata:{ title: My generated Depot, \
-                upload_type: presentation, \
-                description: This is my first upload,\
-                creators: [ {name: Python, Script, affiliation: Zeno} ], }}"
-        return info
+        docu_info = '{"metadata": {"title": "My first upload", "upload_type": "poster", "description": "This is my first upload", "creators": [{"name": "Doe, John", "affiliation": "Zenodo"}]}}'
+        # info = '{\"metadata\":{ \"title\": \"My generated Depot\", \"upload_type\": \"presentation\", \"description\": \"This is my first upload\", \ \"creators\": [ {\"name\": \"Python, Script\", \"affiliation\": \"Zeno\"} ], }}'
+        return docu_info
 
     def json_content_header(self):
         return {"Content-Type": "application/json"}
@@ -88,25 +87,41 @@ class API:
         return req.json()
 
     def update_deposit(self, id, metadata=None):
-        if not metadata:
-            print("insufficient data for update")
-            print("using default")
-            # exit()
-        identifier = str(id)
-        route = self.build_deposit_url(identifier)
-        url = self.authenticate(route)
-        metadata = self.default_info()
-        print(url)
-        print(metadata)
-        req = requests.put(url, data=json.dumps(metadata))
-        return req.json()
+        # Already added when you pass json= but not when you pass data=
+        headers = {'Content-Type': 'application/json', }
 
-    def delete_deposit(self, id):
         identifier = str(id)
         route = self.build_deposit_url(identifier)
         url = self.authenticate(route)
-        req = requests.delete(url)
-        print(req.headers)
+
+        params = {'access_token': self.token, }
+
+        json_data = {
+            'metadata': {
+                'title': 'My first upload',
+                'upload_type': 'poster',
+                'description': 'This is my first upload',
+                'creators': [
+                    {
+                        'name': 'Doe, John',
+                        'affiliation': 'Zenodo',
+                    },
+                ],
+            },
+        }
+
+        response = requests.put(url, params=params, headers=headers, json=json_data)
+        print(response.json())
+        return response
+
+    def delete_deposit(self, id) -> bool:
+        identifier = str(id)
+        route = self.build_deposit_url(identifier)
+        url = self.authenticate(route)
+        response = requests.delete(url)
+        print(response.headers)
+        print(response.status_code)
+        return response.ok
 
     def get_files_of_deposit(self, id):
         identifier = str(id)
@@ -153,8 +168,8 @@ class API:
             raise FileNotFoundError
 
         deposit = self.get_deposit(deposit_id)
-        file_path = path.join(path.expanduser('~'),
-                              "Documents/workspace/whk/zenodo/abc.jsonld")
+        # file_path = path.join(path.expanduser('~'),
+        #                       "Documents/workspace/whk/zenodo/abc.jsonld")
         deposit_id = str(deposit_id)
         bucket_link = deposit["links"]["bucket"]
 
@@ -168,12 +183,22 @@ class API:
             response = req.json()
             print(json.dumps(response, indent=4))
 
-    def collect_for_databus(self, depo_id):
+    def collect_for_databus(self, depo_id, required_fields
+                            =["description", "title", "license"]):
         depo_info = self.get_deposit(depo_id)
         dlinks = self.get_download_links(depo_id)
         version = datetime.datetime.fromisoformat(depo_info["created"])
         hasVersion = version.strftime("%Y-%m-%d")
         metadata = depo_info["metadata"]
+
+        metadata_fields = metadata.keys()
+        # TODO: check if fields are avialable if not abort
+        matches = list(filter(lambda field: field in required_fields, metadata_fields))
+
+        if len(matches) != len(required_fields):
+            print("Error")
+            return
+
         description = metadata["description"]
         title = metadata["title"]
         license = metadata["license"]
@@ -182,7 +207,7 @@ class API:
         id = f"""
             https://dev.databus.dbpedia.org/
             {username}/test_group/
-            test_artifact_{id}/2022-02-09
+            test_artifact/2020-20-20
         """
 
         context = depo_info["links"]["self"]
@@ -234,6 +259,46 @@ class API:
         print(json.dumps(response.content, indent=2))
         return response
 
+    def collect_files(self, directory):
+        files = os.listdir(directory)
+        print(files)
+        return files
+
+    def publish_files(self, directory, depo_id=None):
+        """
+        1. take folder with files
+        2. create empty deposit
+        3. store depo_id
+        -  (optional) name empty depo
+        4. upload files to deposit
+        5. create databus version of files from zenodo
+        """
+        """1"""
+        files = self.collect_files(directory)
+        files = [path.abspath(path.join(directory, file)) for file in files]
+        if not depo_id:
+            """2"""
+            info = self.create_deposit()
+            print(info)
+            """3"""
+            depo_id = info["id"]
+        """4"""
+        file_reports = []
+        current_file = ""
+        try:
+            for file in files:
+                current_file = file
+                response = self.upload_file(depo_id, file)
+                file_reports.append(response)
+        except FileNotFoundError:
+            print(f"Wrong File Path for {current_file}, aborting...")
+            _ = self.delete_deposit(depo_id)
+            print("Error while uploading to Zenodo,\
+                  deleting newly created Deposit: ", depo_id)
+            return
+        """5"""
+        print("Successful Upload on Zenodo", depo_id)
+        self.collect_for_databus(depo_id)
 
 # curl -X 'POST' \
 #   'https://dev.databus.dbpedia.org/api/publish\

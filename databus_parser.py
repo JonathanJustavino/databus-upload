@@ -1,8 +1,7 @@
 import json
-from os import path
 import re
 import argparse
-from api_calls import setup_api
+from os import path
 
 
 def setup_parser():
@@ -16,6 +15,7 @@ def setup_parser():
     parser.add_argument('-u', '--upload', help="Upload a file to a Deposit")
     parser.add_argument('-s', '--update', help="Update a Deposit")
     parser.add_argument('-p', '--publish', help="Upload to Databus")
+    parser.add_argument('--complete', help="Upload on Zenodo and Databus")
     parser.add_argument('-del', '--delete_deposit',
                         help="Delete a deposit by id")
     parser.add_argument('-ds', '--deposits', action="store_true",
@@ -32,11 +32,11 @@ def parse_id(id):
     return id
 
 
-def parse():
+def parse(api):
     parser = setup_parser()
     args = parser.parse_args()
-    api = setup_api()
     if args.create_deposit:
+        print("wellll")
         response = api.create_deposit()
         print(response)
     if args.files:
@@ -71,3 +71,8 @@ def parse():
     if args.deposit:
         depo_id = parse_id(args.deposit)
         response = api.get_deposit(depo_id)
+        print(response)
+    if args.complete:
+        directory = args.complete
+        response = api.publish_files(directory)
+        print(response)
