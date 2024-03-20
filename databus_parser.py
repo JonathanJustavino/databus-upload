@@ -5,7 +5,10 @@ from os import path
 
 
 def setup_parser():
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser = argparse.ArgumentParser(description='Publish on Zenodo and Databus')
+    parser.add_argument('--complete', nargs=5,
+                        metavar=("directory", "Group", "Artifact", "Version", "License"),
+                        help="Upload on Zenodo and Databus")
     parser.add_argument('-c', '--create_deposit', action="store_true",
                         help="Create a new Deposit")
     parser.add_argument('-d', '--deposit', metavar=("deposit_id"),
@@ -22,9 +25,6 @@ def setup_parser():
                         help="Update a Deposit")
     parser.add_argument('-p', '--publish', metavar=("deposit_id"),
                         help="Upload to Databus")
-    parser.add_argument('--complete', nargs=5,
-                        metavar=("directory", "Group", "Artifact", "Version", "License"),
-                        help="Upload on Zenodo and Databus")
     parser.add_argument('-id', '--depo_id', metavar=("deposit_id"),
                         help="deposit_id")
     parser.add_argument('-del', '--delete_deposit', metavar=("deposit_id"),
