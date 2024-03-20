@@ -2,8 +2,8 @@
 
 ## Setup
 
-- Make sure Python is installed
-  - `sudo apt install python`
+- Make sure Python3 is installed (3.7 or higher)
+  - `sudo apt install python3`
 
 1. Create virtual environment (execute the command venv)
  
