@@ -14,19 +14,32 @@ def setup_parser():
                         help="List all download links of files in a Deposit")
     parser.add_argument('-f', '--files', metavar=("deposit_id"),
                         help="List all files of a Deposit")
-    parser.add_argument('-u', '--upload', metavar=("deposit_id"),
+    parser.add_argument('-ul', '--upload', metavar=("deposit_id"),
                         help="Upload a file to a Deposit")
-    parser.add_argument('-s', '--update', metavar=("deposit_id"),
+    parser.add_argument('-ud', '--update', metavar=("deposit_id"),
+                        help="Update a Deposit")
+    parser.add_argument('-s', '--sync_databus', metavar=("deposit_id"),
                         help="Update a Deposit")
     parser.add_argument('-p', '--publish', metavar=("deposit_id"),
                         help="Upload to Databus")
-    parser.add_argument('--complete', nargs=4,
-                        metavar=("directory", "Group", "Artifact", "Version"),
+    parser.add_argument('--complete', nargs=5,
+                        metavar=("directory", "Group", "Artifact", "Version", "License"),
                         help="Upload on Zenodo and Databus")
+    parser.add_argument('-id', '--depo_id', metavar=("deposit_id"),
+                        help="deposit_id")
     parser.add_argument('-del', '--delete_deposit', metavar=("deposit_id"),
                         help="Delete a deposit by id")
     parser.add_argument('-ds', '--deposits', action="store_true",
                         help="List all Deposits of a User")
+    parser.add_argument('-rs', '--records', action="store_true",
+                        help="List all Records")
+    parser.add_argument('-r', '--record', metavar=("record_id"),
+                        help="Show a specific Record")
+    parser.add_argument('-rfs', '--record_files', metavar=("record_id"),
+                        help="Show files from a specific Record")
+    parser.add_argument('-rf', '--record_file', nargs=2,
+                        metavar=("record_id", "file_id"),
+                        help="Show file from a specific Record")
     return parser
 
 
@@ -39,11 +52,16 @@ def parse_id(id):
     return id
 
 
+def log_response(response):
+    formatted = json.dumps(response, indent=2)
+    print(formatted)
+    return formatted
+
+
 def parse(api):
     parser = setup_parser()
     args = parser.parse_args()
     if args.create_deposit:
-        print("wellll")
         response = api.create_deposit()
         print(response)
     if args.files:
@@ -70,7 +88,7 @@ def parse(api):
     if args.publish:
         depo_id = parse_id(args.publish)
         response = api.collect_for_databus(depo_id)
-        print(json.dumps(response.text, indent=2))
+        log_response(response.json())
     if args.download:
         depo_id = parse_id(args.download)
         links = api.get_download_links(depo_id)
@@ -81,11 +99,29 @@ def parse(api):
         print(response)
     if args.complete:
         arguments = args.complete
-        response = api.publish_files(*arguments)
+        depo_id = args.depo_id
+        response = api.publish_files(*arguments, depo_id=depo_id)
         if not response:
             print("Error while uploading to Databus")
         if response.ok:
             print("Upload to Databus successful")
             print("Response:")
             print("\n", response.text)
-
+    if args.records:
+        response = api.list_records()
+        if response.ok:
+            log_response(response.json())
+    if args.record:
+        record_id = parse_id(args.record)
+        response = api.get_record(record_id)
+        if response.ok:
+            log_response(response.json())
+    if args.record_files:
+        record_id = parse_id(args.record_files)
+        response = api.show_files(record_id)
+        if response.ok:
+            log_response(response.json())
+    if args.record_file:
+        response = api.show_file(*args.record_file)
+        if response.ok:
+            log_response(response.json())

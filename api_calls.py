@@ -2,6 +2,8 @@ import os
 import json
 import curlify
 import requests
+import validators
+from urllib.error import URLError
 from os import path
 from dataclasses import dataclass
 import datetime
@@ -43,13 +45,19 @@ class API:
         url = path.join(self.endpoint, *args)
         return url
 
-    def build_deposit_url(self, *args):
-        deposit_url = self.build_url("deposit", "depositions", *args)
-        return deposit_url
+    def record_build_url(self, *args):
+        return self.build_url("records", *args)
 
-    def build_file_url(self, deposit_id, *args):
-        deposit_url = self.build_deposit_url(deposit_id, "files", *args)
-        return deposit_url
+    def build_deposit_url(self, *args):
+        return self.build_url("deposit", "depositions", *args)
+
+    def build_publish_url(self, id):
+        return self.build_deposit_url(str(id), "actions", "publish")
+
+    def build_file_url(self, id, *args, deposit=True):
+        if deposit:
+            return self.build_deposit_url(id, "files", *args)
+        return self.record_build_url(id, "files", *args)
 
     def authenticate(self, url):
         return f"{url}?access_token={self.token}"
@@ -128,36 +136,48 @@ class API:
         req = requests.get(url)
         return req.json()
 
+    def get_files_of_record(self, id):
+        identifier = str(id)
+        route = self.record_build_url(identifier, "files")
+        url = self.authenticate(route)
+        req = requests.get(url)
+        return req.json()["entries"]
+
     def _get_extension(self, filename):
         res = os.path.splitext(filename)[1]
         return res[1:]
 
-    def get_download_links(self, deposit_id):
-        base_path = path.join(path.expanduser("~"), "Downloads", "zenodo")
+    def get_deposit_file_links(self, deposit_id):
         files = self.get_files_of_deposit(deposit_id)
-        success = []
-        errors = []
+        links = []
         for file in files:
             url = file["links"]["download"]
-            response = requests.get(self.authenticate(url))
             name = file["filename"]
-            if not response.ok:
-                file_info = {
-                    "name": name,
-                    "downloadURL": url,
-                }
-                errors.append(file_info)
-                continue
             file_info = {
                 "name": name,
                 "formatExtension": self._get_extension(name),
                 "compression": "None",
                 "downloadURL": url,
              }
-            success.append(file_info)
-            with open(path.join(base_path, name), "wb") as f:
-                f.write(response.content)
-        return {"success": success, "error": errors}
+            links.append(file_info)
+        return links
+
+    def get_record_file_links(self, record_id):
+        files = self.get_files_of_record(record_id)
+        links = []
+        for file in files:
+            url = file["links"]["content"]
+            name = file["key"]
+            checksum = file["checksum"]
+            file_info = {
+                "name": name,
+                "formatExtension": self._get_extension(name),
+                "compression": "None",
+                "downloadURL": url,
+                "checksum": checksum
+             }
+            links.append(file_info)
+        return links
 
     def upload_file(self, deposit_id, file_path):
         file_path = os.path.abspath(file_path)
@@ -181,7 +201,11 @@ class API:
             print(json.dumps(response, indent=4))
 
     def calculate_locally(self, url):
-        # calculate checksum and byte size locally
+        """ TODO:
+            use hashlib to compute sha256 of file
+            and compute bytesize of file
+            locally
+        """
         ...
 
     def collect_for_databus(self,
@@ -189,11 +213,12 @@ class API:
                             group,
                             artifact,
                             version,
+                            license,
                             required_fields=[
                                 "description", "title", "license"
                             ]):
-        depo_info = self.get_deposit(depo_id)
-        dlinks = self.get_download_links(depo_id)
+        depo_info = self.get_record(depo_id).json()
+        links = self.get_files_of_record(depo_id)
         if not version:
             version = datetime.datetime.fromisoformat(depo_info["created"])
         hasVersion = version.strftime("%Y-%m-%d")
@@ -209,33 +234,38 @@ class API:
 
         description = metadata["description"]
         title = metadata["title"]
-        license = metadata["license"]
         id = depo_info["id"]
         username = "prototype"
         id = f"https://dev.databus.dbpedia.org/{username}/{group}/{artifact}/{hasVersion}"
-
-        context = depo_info["links"]["self"]
 
         def process(item):
             processed = {
                 "@type":  "Part",
                 "compression": "none",
-                "formatExtension": item["formatExtension"],
-                "downloadURL": self.authenticate(item['downloadURL'])
+                "formatExtension": self._get_extension(item["key"]),
+                "downloadURL": item['links']['content']
             }
             return processed
 
-        distribution = list(map(process, dlinks["success"]))
+        distribution = list(map(process, links))
 
-        response = self.to_databus(context, id, hasVersion, title,
-                                   description, license, distribution)
+        response = self.to_databus(id, hasVersion, title,
+                                   description, distribution, license)
         return response
 
-    def to_databus(self, context, id, hasVersion, title, description,
-                   license, distribution, type="Version"):
+    def to_databus(self, id, hasVersion, title, description,
+                   distribution, license=None, type="Version"):
 
-        # TODO: how to convert to url
-        license = "https://creativecommons.org/licenses/by/4.0/"
+        # if not license:
+        #     raise requests.URLRequired
+        # if "id" in license:
+        #     license = "https://creativecommons.org/licenses/by/4.0/"
+        # else:
+        #     # TODO: how to convert to url
+        #     # TODO: convert string to url
+        #     # https://api.dalicc.net/docs#/licenselibrary/list_licenses_in_the_license_library_licenselibrary_list_get
+        #     # to lookup correct license uri
+        #     ...
 
         header = {
             "Accept": "application/json",
@@ -262,7 +292,6 @@ class API:
 
         response = requests.post(self.databus_endpoint, headers=header,
                                  data=json.dumps(data))
-        # print(curlify.to_curl(response.request))
         return response
 
     def collect_files(self, directory):
@@ -271,7 +300,10 @@ class API:
         return files
 
     def publish_files(self, directory, group,
-                      artifact, version, depo_id=None):
+                      artifact, version, license, depo_id=None):
+
+        if not validators.url(license):
+            raise URLError("Error with provided license")
 
         files = self.collect_files(directory)
         version = datetime.datetime.strptime(version, '%Y-%m-%d').date()
@@ -295,4 +327,43 @@ class API:
                   deleting newly created Deposit: ", depo_id)
             return
         print("Successful Upload on Zenodo", depo_id)
-        return self.collect_for_databus(depo_id, group, artifact, version)
+
+        depo_id = str(depo_id)
+        res = self.publish_deposit(depo_id)
+        record_id = str(res.json()["id"])
+
+        if res.ok:
+            print("published Deposit", depo_id)
+            print("Now Record", record_id)
+            return self.collect_for_databus(record_id, group,
+                                            artifact, version, license)
+
+    def list_records(self):
+        route = self.record_build_url()
+        url = self.authenticate(route)
+        response = requests.get(url)
+        return response
+
+    def get_record(self, record_id):
+        route = self.record_build_url(record_id)
+        response = requests.get(route)
+        return response
+
+    def show_files(self, record_id):
+        route = self.build_file_url(record_id, deposit=False)
+        print(route)
+        response = requests.get(route)
+        return response
+
+    def show_file(self, record_id, file_id):
+        route = self.build_file_url(record_id, file_id, deposit=False)
+        print(route)
+        response = requests.get(route)
+        return response
+
+    def publish_deposit(self, deposit_id):
+        # curl -i -X POST https://zenodo.org/api/deposit/depositions/1234/actions/publish?access_token=ACCESS_TOKEN
+        route = self.build_publish_url(deposit_id)
+        url = self.authenticate(route)
+        response = requests.post(url)
+        return response
