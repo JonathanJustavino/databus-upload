@@ -107,7 +107,8 @@ class API:
             },
         }
 
-        response = requests.put(url, params=params, headers=headers, json=json_data)
+        response = requests.put(url, params=params,
+                                headers=headers, json=json_data)
         print(response.json())
         return response
 
@@ -159,14 +160,13 @@ class API:
         return {"success": success, "error": errors}
 
     def upload_file(self, deposit_id, file_path):
+        file_path = os.path.abspath(file_path)
         if not path.exists(file_path):
             raise FileNotFoundError
         if not path.isfile(file_path):
             raise FileNotFoundError
 
         deposit = self.get_deposit(deposit_id)
-        # file_path = path.join(path.expanduser('~'),
-        #                       "Documents/workspace/whk/zenodo/abc.jsonld")
         deposit_id = str(deposit_id)
         bucket_link = deposit["links"]["bucket"]
 
@@ -180,17 +180,28 @@ class API:
             response = req.json()
             print(json.dumps(response, indent=4))
 
-    def collect_for_databus(self, depo_id, required_fields
-                            =["description", "title", "license"]):
+    def calculate_locally(self, url):
+        # calculate checksum and byte size locally
+        ...
+
+    def collect_for_databus(self,
+                            depo_id,
+                            group,
+                            artifact,
+                            version,
+                            required_fields=[
+                                "description", "title", "license"
+                            ]):
         depo_info = self.get_deposit(depo_id)
         dlinks = self.get_download_links(depo_id)
-        version = datetime.datetime.fromisoformat(depo_info["created"])
+        if not version:
+            version = datetime.datetime.fromisoformat(depo_info["created"])
         hasVersion = version.strftime("%Y-%m-%d")
         metadata = depo_info["metadata"]
 
         metadata_fields = metadata.keys()
-        # TODO: check if fields are avialable if not abort
-        matches = list(filter(lambda field: field in required_fields, metadata_fields))
+        matches = list(filter(lambda field: field in required_fields,
+                              metadata_fields))
 
         if len(matches) != len(required_fields):
             print("Error")
@@ -201,11 +212,7 @@ class API:
         license = metadata["license"]
         id = depo_info["id"]
         username = "prototype"
-        id = f"""
-            https://dev.databus.dbpedia.org/
-            {username}/test_group/
-            test_artifact/2020-20-20
-        """
+        id = f"https://dev.databus.dbpedia.org/{username}/{group}/{artifact}/{hasVersion}"
 
         context = depo_info["links"]["self"]
 
@@ -214,7 +221,7 @@ class API:
                 "@type":  "Part",
                 "compression": "none",
                 "formatExtension": item["formatExtension"],
-                "downloadURL": item['downloadURL']
+                "downloadURL": self.authenticate(item['downloadURL'])
             }
             return processed
 
@@ -251,10 +258,11 @@ class API:
             ]
         }
 
+        print(data)
+
         response = requests.post(self.databus_endpoint, headers=header,
                                  data=json.dumps(data))
-        # print(json.dumps(response.content, indent=2))
-        print(curlify.to_curl(response.request))
+        # print(curlify.to_curl(response.request))
         return response
 
     def collect_files(self, directory):
@@ -262,25 +270,17 @@ class API:
         print(files)
         return files
 
-    def publish_files(self, directory, depo_id=None):
-        """
-        1. take folder with files
-        2. create empty deposit
-        3. store depo_id
-        -  (optional) name empty depo
-        4. upload files to deposit
-        5. create databus version of files from zenodo
-        """
-        """1"""
+    def publish_files(self, directory, group,
+                      artifact, version, depo_id=None):
+
         files = self.collect_files(directory)
+        version = datetime.datetime.strptime(version, '%Y-%m-%d').date()
+
         files = [path.abspath(path.join(directory, file)) for file in files]
         if not depo_id:
-            """2"""
             info = self.create_deposit()
-            """3"""
             depo_id = info["id"]
             self.update_deposit(depo_id)
-        """4"""
         file_reports = []
         current_file = ""
         try:
@@ -294,40 +294,5 @@ class API:
             print("Error while uploading to Zenodo,\
                   deleting newly created Deposit: ", depo_id)
             return
-        """5"""
         print("Successful Upload on Zenodo", depo_id)
-        self.collect_for_databus(depo_id)
-
-# curl -X 'POST' \
-#   'https://dev.databus.dbpedia.org/api/publish\
-#            ?fetch-file-properties=true&log-level=info' \
-#   -H 'accept: application/json' \
-#   -H 'X-API-KEY: <your API key>' \
-#   -H 'Content-Type: application/ld+json' \
-#   -d '{
-#   "@context": "https://downloads.dbpedia.org/databus/context.jsonld",
-#   "@graph": [
-#     {
-#       "@type": [
-#         "Version",
-#         "Dataset"
-#       ],
-#       "@id": "https://dev.databus.dbpedia.org/
-#               <your username>/test_group/test_artifact/2023-06-13",
-#       "hasVersion": "2023-06-13",
-#       "title": "test dataset",
-#       "abstract": "test dataset abstract",
-#       "description": "test dataset description",
-#       "license": "https://dalicc.net/licenselibrary/Apache-2.0",
-#       "distribution": [
-#         {
-#           "@type": "Part",
-#           "formatExtension": "md",
-#           "compression": "none",
-#           "downloadURL": "https://raw.githubusercontent.com/dbpedia/databus/\
-#                            68f976e29e2db15472f1b664a6fd5807b88d1370/README.md"
-#         }
-#       ]
-#     }
-#   ]
-# }'
+        return self.collect_for_databus(depo_id, group, artifact, version)

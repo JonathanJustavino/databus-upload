@@ -8,15 +8,22 @@ def setup_parser():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('-c', '--create_deposit', action="store_true",
                         help="Create a new Deposit")
-    parser.add_argument('-d', '--deposit', help="Retrieve a deposit by id")
-    parser.add_argument('-dl', '--download', help="List all\
-                        download links of files in a Deposit")
-    parser.add_argument('-f', '--files', help="List all files of a Deposit")
-    parser.add_argument('-u', '--upload', help="Upload a file to a Deposit")
-    parser.add_argument('-s', '--update', help="Update a Deposit")
-    parser.add_argument('-p', '--publish', help="Upload to Databus")
-    parser.add_argument('--complete', help="Upload on Zenodo and Databus")
-    parser.add_argument('-del', '--delete_deposit',
+    parser.add_argument('-d', '--deposit', metavar=("deposit_id"),
+                        help="Retrieve a deposit by id")
+    parser.add_argument('-dl', '--download', metavar=("deposit_id"),
+                        help="List all download links of files in a Deposit")
+    parser.add_argument('-f', '--files', metavar=("deposit_id"),
+                        help="List all files of a Deposit")
+    parser.add_argument('-u', '--upload', metavar=("deposit_id"),
+                        help="Upload a file to a Deposit")
+    parser.add_argument('-s', '--update', metavar=("deposit_id"),
+                        help="Update a Deposit")
+    parser.add_argument('-p', '--publish', metavar=("deposit_id"),
+                        help="Upload to Databus")
+    parser.add_argument('--complete', nargs=4,
+                        metavar=("directory", "Group", "Artifact", "Version"),
+                        help="Upload on Zenodo and Databus")
+    parser.add_argument('-del', '--delete_deposit', metavar=("deposit_id"),
                         help="Delete a deposit by id")
     parser.add_argument('-ds', '--deposits', action="store_true",
                         help="List all Deposits of a User")
@@ -73,6 +80,12 @@ def parse(api):
         response = api.get_deposit(depo_id)
         print(response)
     if args.complete:
-        directory = args.complete
-        response = api.publish_files(directory)
-        print(response)
+        arguments = args.complete
+        response = api.publish_files(*arguments)
+        if not response:
+            print("Error while uploading to Databus")
+        if response.ok:
+            print("Upload to Databus successful")
+            print("Response:")
+            print("\n", response.text)
+
