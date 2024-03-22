@@ -237,7 +237,7 @@ class API:
         """
         ...
 
-    def generate_databus_input(self, depo_id, metadatajson, hasVersion):
+    def generate_databus_input(self, depo_id, metadatajson, hasVersion, user=None):
         file_info = self.get_files_of_record(depo_id)[0]
         with open(metadatajson, "rb") as metafile:
             metadatajson = json.load(metafile)
@@ -252,7 +252,8 @@ class API:
 
             id = metadatajson["wasGeneratedBy"]["used"].split('#')[0]
             # TODO: temp fix for id
-            user = "prototype"
+            if not user:
+                user = "prototype"
             group = "my-group"
             artifact = "my-artifact"
             version = hasVersion
@@ -295,7 +296,7 @@ class API:
             }
             return metadata
 
-    def to_databus(self, depo_id, csv_file, metadatajson, hasVersion, type="Version"):
+    def to_databus(self, depo_id, csv_file, metadatajson, hasVersion, user, type="Version"):
 
         header = {
             "Accept": "application/json",
@@ -303,7 +304,7 @@ class API:
             "Content-Type": "application/ld+json",
         }
 
-        data = self.generate_databus_input(depo_id, metadatajson, hasVersion)
+        data = self.generate_databus_input(depo_id, metadatajson, hasVersion, user)
 
         print(data)
 
@@ -312,7 +313,7 @@ class API:
         return response
 
     def publish_file(self, csv_file, metadatajson,
-                     version, depo_id=None):
+                     version, user=None, depo_id=None):
         csv_file, metadatajson, = self.create_complete_file_paths(csv_file, metadatajson)
 
         if not depo_id:
@@ -332,6 +333,9 @@ class API:
                     deleting newly created Deposit: ", depo_id)
                 return
             print("Successful Upload on Zenodo", depo_id)
+        
+        if not user:
+            user = "prototype"
 
         depo_id = str(depo_id)
         res = self.publish_deposit(depo_id)
@@ -341,4 +345,4 @@ class API:
         if res.ok:
             print("published Deposit", depo_id)
             print("Now Record", record_id)
-            return self.to_databus(depo_id, csv_file, metadatajson, version)
+            return self.to_databus(depo_id, csv_file, metadatajson, version, user)
