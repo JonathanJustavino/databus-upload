@@ -333,7 +333,7 @@ class API:
                     deleting newly created Deposit: ", depo_id)
                 return
             print("Successful Upload on Zenodo", depo_id)
-        
+
         if not user:
             user = "prototype"
 

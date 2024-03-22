@@ -6,43 +6,43 @@ from os import path
 
 def setup_parser():
     parser = argparse.ArgumentParser(description='Publish on Zenodo and Databus')
-    parser.add_argument('-c', '--complete', nargs=3,
+    parser.add_argument('--complete', nargs=3,
                         metavar=("csv_file", "metadatafile", "Version"),
                         help="Upload on Zenodo and Databus")
-    parser.add_argument('-u', '--user', nargs=3,
+    parser.add_argument('-u', '--user', nargs=1,
                         metavar=("user"),
                         help="Specifiy user for databus")
-    # parser.add_argument('-c', '--create_deposit', action="store_true",
-    #                     help="Create a new Deposit")
-    # parser.add_argument('-d', '--deposit', metavar=("deposit_id"),
-    #                     help="Retrieve a deposit by id")
-    # parser.add_argument('-dl', '--download', metavar=("deposit_id"),
-    #                     help="List all download links of files in a Deposit")
-    # parser.add_argument('-f', '--files', metavar=("deposit_id"),
-    #                     help="List all files of a Deposit")
-    # parser.add_argument('-ul', '--upload', metavar=("deposit_id"),
-    #                     help="Upload a file to a Deposit")
-    # parser.add_argument('-ud', '--update', metavar=("deposit_id"),
-    #                     help="Update a Deposit")
-    # parser.add_argument('-s', '--sync_databus', metavar=("deposit_id"),
-    #                     help="Update a Deposit")
-    # parser.add_argument('-p', '--publish', metavar=("deposit_id"),
-    #                     help="Upload to Databus")
-    # parser.add_argument('-id', '--depo_id', metavar=("deposit_id"),
-    #                     help="deposit_id")
-    # parser.add_argument('-del', '--delete_deposit', metavar=("deposit_id"),
-    #                     help="Delete a deposit by id")
-    # parser.add_argument('-ds', '--deposits', action="store_true",
-    #                     help="List all Deposits of a User")
-    # parser.add_argument('-rs', '--records', action="store_true",
-    #                     help="List all Records")
-    # parser.add_argument('-r', '--record', metavar=("record_id"),
-    #                     help="Show a specific Record")
-    # parser.add_argument('-rfs', '--record_files', metavar=("record_id"),
-    #                     help="Show files from a specific Record")
-    # parser.add_argument('-rf', '--record_file', nargs=2,
-    #                     metavar=("record_id", "file_id"),
-    #                     help="Show file from a specific Record")
+    parser.add_argument('-c', '--create_deposit', action="store_true",
+                        help="Create a new Deposit")
+    parser.add_argument('-d', '--deposit', metavar=("deposit_id"),
+                        help="Retrieve a deposit by id")
+    parser.add_argument('-dl', '--download', metavar=("deposit_id"),
+                        help="List all download links of files in a Deposit")
+    parser.add_argument('-f', '--files', metavar=("deposit_id"),
+                        help="List all files of a Deposit")
+    parser.add_argument('-ul', '--upload', metavar=("deposit_id"),
+                        help="Upload a file to a Deposit")
+    parser.add_argument('-ud', '--update', metavar=("deposit_id"),
+                        help="Update a Deposit")
+    parser.add_argument('-s', '--sync_databus', metavar=("deposit_id"),
+                        help="Update a Deposit")
+    parser.add_argument('-p', '--publish', metavar=("deposit_id"),
+                        help="Upload to Databus")
+    parser.add_argument('-id', '--depo_id', metavar=("deposit_id"),
+                        help="deposit_id")
+    parser.add_argument('-del', '--delete_deposit', metavar=("deposit_id"),
+                        help="Delete a deposit by id")
+    parser.add_argument('-ds', '--deposits', action="store_true",
+                        help="List all Deposits of a User")
+    parser.add_argument('-rs', '--records', action="store_true",
+                        help="List all Records")
+    parser.add_argument('-r', '--record', metavar=("record_id"),
+                        help="Show a specific Record")
+    parser.add_argument('-rfs', '--record_files', metavar=("record_id"),
+                        help="Show files from a specific Record")
+    parser.add_argument('-rf', '--record_file', nargs=2,
+                        metavar=("record_id", "file_id"),
+                        help="Show file from a specific Record")
     return parser
 
 

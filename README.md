@@ -65,10 +65,15 @@ options:
 This command creates a new deposit, uploads a file in a specified directory to Zenodo
 and publishes the metadata on the databas specified under the parameters:
 
-- Group
-- Artifact
-- Version
+- csv
+  - path to the csv that will be uploaded to zenodo
+- metadata.json
+  - path to the metadata.json describing the csv data 
+- version
+  - artifact version on the databus
+- (Optional) username
+  - if not specified the user name is set to "prototype"
 
 ```bash
-python3 main.py --complete <director-containing-file> <Group> <Artifact> <Version> <License>
+python3 main.py --complete <file-to-csv> <file-to-metadatajson> <version> <optional-user-name>
 ```
