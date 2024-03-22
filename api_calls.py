@@ -2,11 +2,8 @@ import os
 import json
 import curlify
 import requests
-import validators
-from urllib.error import URLError
 from os import path
 from dataclasses import dataclass
-import datetime
 from dotenv import load_dotenv
 
 
@@ -89,7 +86,7 @@ class API:
         route = self.build_deposit_url(identifier)
         url = self.authenticate(route)
         req = requests.get(url)
-        return req.json()
+        return req
 
     def update_deposit(self, id, metadata=None):
         # Already added when you pass json= but not when you pass data=
@@ -100,23 +97,11 @@ class API:
         url = self.authenticate(route)
 
         params = {'access_token': self.token, }
-
-        json_data = {
-            'metadata': {
-                'title': 'My first upload',
-                'upload_type': 'poster',
-                'description': 'This is my first upload',
-                'creators': [
-                    {
-                        'name': 'Doe, John',
-                        'affiliation': 'Zenodo',
-                    },
-                ],
-            },
-        }
+        if not metadata:
+            raise TypeError("Metadata should not be empty")
 
         response = requests.put(url, params=params,
-                                headers=headers, json=json_data)
+                                headers=headers, json=metadata)
         print(response.json())
         return response
 
@@ -188,7 +173,7 @@ class API:
 
         deposit = self.get_deposit(deposit_id)
         deposit_id = str(deposit_id)
-        bucket_link = deposit["links"]["bucket"]
+        bucket_link = deposit.json()["links"]["bucket"]
 
         _, file_name = path.split(file_path)
         route = f"{bucket_link}/{file_name}"
@@ -199,144 +184,7 @@ class API:
             req = requests.put(url, data=fp, params=params)
             response = req.json()
             print(json.dumps(response, indent=4))
-
-    def calculate_locally(self, url):
-        """ TODO:
-            use hashlib to compute sha256 of file
-            and compute bytesize of file
-            locally
-        """
-        ...
-
-    def collect_for_databus(self,
-                            depo_id,
-                            group,
-                            artifact,
-                            version,
-                            license,
-                            required_fields=[
-                                "description", "title", "license"
-                            ]):
-        depo_info = self.get_record(depo_id).json()
-        links = self.get_files_of_record(depo_id)
-        if not version:
-            version = datetime.datetime.fromisoformat(depo_info["created"])
-        hasVersion = version.strftime("%Y-%m-%d")
-        metadata = depo_info["metadata"]
-
-        metadata_fields = metadata.keys()
-        matches = list(filter(lambda field: field in required_fields,
-                              metadata_fields))
-
-        if len(matches) != len(required_fields):
-            print("Error")
-            return
-
-        description = metadata["description"]
-        title = metadata["title"]
-        id = depo_info["id"]
-        username = "prototype"
-        id = f"https://dev.databus.dbpedia.org/{username}/{group}/{artifact}/{hasVersion}"
-
-        def process(item):
-            processed = {
-                "@type":  "Part",
-                "compression": "none",
-                "formatExtension": self._get_extension(item["key"]),
-                "downloadURL": item['links']['content']
-            }
-            return processed
-
-        distribution = list(map(process, links))
-
-        response = self.to_databus(id, hasVersion, title,
-                                   description, distribution, license)
-        return response
-
-    def to_databus(self, id, hasVersion, title, description,
-                   distribution, license=None, type="Version"):
-
-        # if not license:
-        #     raise requests.URLRequired
-        # if "id" in license:
-        #     license = "https://creativecommons.org/licenses/by/4.0/"
-        # else:
-        #     # TODO: how to convert to url
-        #     # TODO: convert string to url
-        #     # https://api.dalicc.net/docs#/licenselibrary/list_licenses_in_the_license_library_licenselibrary_list_get
-        #     # to lookup correct license uri
-        #     ...
-
-        header = {
-            "Accept": "application/json",
-            "X-API-KEY": self.databus_token,
-            "Content-Type": "application/ld+json"
-        }
-
-        data = {
-            "@context": self.context_url,
-            "@graph": [
-                {
-                    "@type": type,
-                    "@id": id,
-                    "hasVersion": hasVersion,
-                    "title": title,
-                    "description": description,
-                    "license": license,
-                    "distribution": distribution,
-                }
-            ]
-        }
-
-        print(data)
-
-        response = requests.post(self.databus_endpoint, headers=header,
-                                 data=json.dumps(data))
-        return response
-
-    def collect_files(self, directory):
-        files = os.listdir(directory)
-        print(files)
-        return files
-
-    def publish_files(self, directory, group,
-                      artifact, version, license, depo_id=None):
-
-        if not validators.url(license):
-            raise URLError("Error with provided license")
-
-        files = self.collect_files(directory)
-        version = datetime.datetime.strptime(version, '%Y-%m-%d').date()
-
-        files = [path.abspath(path.join(directory, file)) for file in files]
-        if not depo_id:
-            info = self.create_deposit()
-            depo_id = info["id"]
-            self.update_deposit(depo_id)
-        file_reports = []
-        current_file = ""
-        try:
-            for file in files:
-                current_file = file
-                response = self.upload_file(depo_id, file)
-                file_reports.append(response)
-        except FileNotFoundError:
-            print(f"Wrong File Path for {current_file}, aborting...")
-            _ = self.delete_deposit(depo_id)
-            print("Error while uploading to Zenodo,\
-                  deleting newly created Deposit: ", depo_id)
-            return
-        print("Successful Upload on Zenodo", depo_id)
-
-        depo_id = str(depo_id)
-        res = self.publish_deposit(depo_id)
-        record_id = str(res.json()["id"])
-
-        if res.ok:
-            print("published Deposit", depo_id)
-            print("Now Record", record_id)
-            return self.collect_for_databus(record_id, group,
-                                            artifact, version, license)
+            return response
 
     def list_records(self):
         route = self.record_build_url()
@@ -367,3 +215,130 @@ class API:
         url = self.authenticate(route)
         response = requests.post(url)
         return response
+
+    def collect_files(self, directory):
+        files = os.listdir(directory)
+        print(files)
+        return files
+
+    def create_complete_file_paths(self, csv_file, metadatajson):
+        csv_file = "model_draft__ind_steel_oxyfu_0.csv"
+        csv_file = path.abspath(path.join("example-upload", csv_file))
+        metadatajson = "metadata.json"
+        metadatajson = path.abspath(path.join("example-upload", metadatajson))
+
+        return csv_file, metadatajson
+
+    def calculate_locally(self, url):
+        """ TODO:
+            use hashlib to compute sha256 of file
+            and compute bytesize of file
+            locally
+        """
+        ...
+
+    def generate_databus_input(self, depo_id, metadatajson, hasVersion):
+        file_info = self.get_files_of_record(depo_id)[0]
+        with open(metadatajson, "rb") as metafile:
+            metadatajson = json.load(metafile)
+            distribution = [
+                {
+                    "@type":  "Part",
+                    "compression": "none",
+                    "formatExtension": self._get_extension(file_info["key"]),
+                    "downloadURL": file_info['links']['content']
+                }
+            ]
+
+            id = metadatajson["wasGeneratedBy"]["used"].split('#')[0]
+            # TODO: temp fix for id
+            user = "prototype"
+            group = "my-group"
+            artifact = "my-artifact"
+            version = hasVersion
+            id = f"https://dev.databus.dbpedia.org/{user}/{group}/{artifact}/{version}"
+            license = metadatajson["wasGeneratedBy"]["license"]
+            description = metadatajson["description"]
+            title = metadatajson["title"]
+
+            data = {
+                "@context": self.context_url,
+                "@graph": [
+                    {
+                        "@type": "Version",
+                        "@id": id,  # TODO: muss version URI sein -> aus der metadatajson die used uri nehmen und alles nach dem fragment nehmen
+                        "hasVersion": hasVersion,
+                        "title": title,
+                        "description": description,
+                        "license": license,  # TODO: nimm license aus der metadatajson
+                        "distribution": distribution,
+                    }
+                ],
+            }
+            return data
+
+    def generate_zendodo_input(self, metadatajson):
+        with open(metadatajson, "rb") as file:
+            metadatajson = json.load(file)
+            metadata = {
+                'metadata': {
+                    'title': metadatajson["title"],
+                    'upload_type': 'poster',
+                    'description': metadatajson["description"],
+                    'creators': [
+                        {
+                            'name': 'Doe, John',
+                            'affiliation': 'Script',
+                        },
+                    ],
+                },
+            }
+            return metadata
+
+    def to_databus(self, depo_id, csv_file, metadatajson, hasVersion, type="Version"):
+
+        header = {
+            "Accept": "application/json",
+            "X-API-KEY": self.databus_token,
+            "Content-Type": "application/ld+json",
+        }
+
+        data = self.generate_databus_input(depo_id, metadatajson, hasVersion)
+
+        print(data)
+
+        response = requests.post(self.databus_endpoint, headers=header,
+                                 data=json.dumps(data))
+        return response
+
+    def publish_file(self, csv_file, metadatajson,
+                     version, depo_id=None):
+        csv_file, metadatajson, = self.create_complete_file_paths(csv_file, metadatajson)
+
+        if not depo_id:
+            info = self.create_deposit()
+            depo_id = info["id"]
+
+            metadata = self.generate_zendodo_input(metadatajson)
+            self.update_deposit(depo_id, metadata=metadata)
+
+            try:
+                response = self.upload_file(depo_id, csv_file)
+                print(response)
+            except FileNotFoundError:
+                print(f"Wrong File Path for {csv_file}, aborting...")
+                _ = self.delete_deposit(depo_id)
+                print("Error while uploading to Zenodo,\
+                    deleting newly created Deposit: ", depo_id)
+                return
+            print("Successful Upload on Zenodo", depo_id)
+
+        depo_id = str(depo_id)
+        res = self.publish_deposit(depo_id)
+        res = self.get_record(depo_id)
+        record_id = str(res.json()["id"])
+
+        if res.ok:
+            print("published Deposit", depo_id)
+            print("Now Record", record_id)
+            return self.to_databus(depo_id, csv_file, metadatajson, version)

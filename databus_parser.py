@@ -6,8 +6,8 @@ from os import path
 
 def setup_parser():
     parser = argparse.ArgumentParser(description='Publish on Zenodo and Databus')
-    parser.add_argument('--complete', nargs=5,
-                        metavar=("directory", "Group", "Artifact", "Version", "License"),
+    parser.add_argument('--complete', nargs=3,
+                        metavar=("csv_file", "metadatafile", "Version"),
                         help="Upload on Zenodo and Databus")
     parser.add_argument('-c', '--create_deposit', action="store_true",
                         help="Create a new Deposit")
@@ -50,6 +50,7 @@ def parse_id(id):
         print("Wrong ID: ", id)
         exit()
     return id
+    # FIXME: For Debugging purposes - static ID
 
 
 def log_response(response):
@@ -96,11 +97,12 @@ def parse(api):
     if args.deposit:
         depo_id = parse_id(args.deposit)
         response = api.get_deposit(depo_id)
-        print(response)
+        print(response.json())
     if args.complete:
         arguments = args.complete
-        depo_id = args.depo_id
-        response = api.publish_files(*arguments, depo_id=depo_id)
+        # depo_id = args.depo_id
+        depo_id = None
+        response = api.publish_file(*arguments)
         if not response:
             print("Error while uploading to Databus")
         if response.ok:
