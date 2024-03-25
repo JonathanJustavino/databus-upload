@@ -1,5 +1,40 @@
 # README
 
+## Setup & Install
+```
+# For Ubuntu
+sudo apt install python3 python3.10-venv
+# setting venv to "virtualenv"
+python3 -m venv virtualenv
+source virtualenv/bin/activate
+# getting python dependency
+pip install -r requirements.txt
+
+```
+## Credentials
+create an .env file with the api keys
+```
+#zenodo
+ACCESS_TOKEN=XXX
+DATABUS_API_KEY=XXX
+```
+
+## Quickstart
+An example run with a sample csv and json.
+Example files were taken from https://databus.openenergyplatform.org/anik/Industry_test/ind_steel_oxyfu_0/v1
+MOSS Prov-O information was added to metadata.json 
+
+```
+CSVFILE="example-upload/model_draft__ind_steel_oxyfu_0.csv"
+OEMETADATA="example-upload/metadata.json"
+VERSION="2024-03-06" #used publicationdate?
+DATABUS_USER=prototype
+python3 main.py --complete $CSVFILE $OEMETADATA $VERSION $DATABUS_USER
+
+
+```
+
+
 ## Setup
 
 - Make sure Python3 is installed (3.7 or higher)
