@@ -4,15 +4,31 @@ from api_calls import API
 from dotenv import load_dotenv
 from databus_parser import parse
 
+# see main below
 
+# return download url for Databus 
 def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None, user=None):
+
     if not depo_id:
+		# create new deposit
         info = api.create_deposit()
         depo_id = info["id"]
+        # use oemetadata to set zenodo metadata        
+        api.update_deposit(depo_id, {
+            'metadata': {
+                'title': metadatajson["title"],
+                'upload_type': 'poster',
+                'description': metadatajson["description"],
+                'creators': [
+                    {
+                        'name': 'Doe, John',
+                        'affiliation': 'Script',
+                    },
+                ],
+            },
+        })
 
-        metadata = api.generate_zendodo_input(metadatajson)
-        api.update_deposit(depo_id, metadata=metadata)
-
+		# upload file
         try:
             response = api.upload_file(depo_id, csv_file)
             print(response)
@@ -27,6 +43,7 @@ def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None, user=None):
     if not user:
         user = "prototype"
 
+	# publish repository
     depo_id = str(depo_id)
     _ = api.publish_deposit(depo_id)
     return depo_id
@@ -111,22 +128,28 @@ def publish_file(api, csv_file, metadatajsonfile,
 
 
 if __name__ == '__main__':
-    # Setup
+    # Setup from .env
     load_dotenv()
     API_KEY = os.getenv("ZENODO_ACCESS_TOKEN")
-    DATABUS_API_KEY = os.getenv("DATABUS_API_KEY")
-    MOSS_ENDPOINT = os.getenv("MOSS_ENDPOINT")
-    DATABUS_ENDPOINT = os.getenv("DATABUS_ENDPOINT")
-    CONTEXT_URL = os.getenv("CONTEXT_URL")
     SANDBOX = os.getenv("SANDBOX")
     ZENODO_ENDPOINT = os.getenv("ZENODO_ENDPOINT")
+    
+    
+    DATABUS_API_KEY = os.getenv("DATABUS_API_KEY")
+    DATABUS_ENDPOINT = os.getenv("DATABUS_ENDPOINT")
+    CONTEXT_URL = os.getenv("CONTEXT_URL")
+
+    
+    MOSS_ENDPOINT = os.getenv("MOSS_ENDPOINT")
+    
 
     api = API(API_KEY, DATABUS_API_KEY, MOSS_ENDPOINT,
               DATABUS_ENDPOINT, CONTEXT_URL, SANDBOX, ZENODO_ENDPOINT)
-
+	# reading CLI
     csv_file, metadatajsonfile, version, depo_id, user = parse(api)
     csv_file, metadatajsonfile = api.create_complete_file_paths(csv_file, metadatajsonfile)
 
+    # reading oemetadata.json
     metadatajson = None
     with open(metadatajsonfile, "rb") as file:
         metadatajson = json.load(file)
@@ -134,6 +157,8 @@ if __name__ == '__main__':
     if not metadatajson:
         raise TypeError("Metadata should not be empty")
 
+	# zenodo
+	# NOT COMPLETE, uses only title and description from oemetadata.json
     if not depo_id:
         record_id = upload_to_zenodo(api, csv_file, metadatajson,
                                      depo_id=depo_id, user=user)
