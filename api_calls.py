@@ -19,6 +19,7 @@ def setup_api():
 class API:
     token: str
     databus_token: str
+    moss_endpoint = "http://localhost:2000/api/annotate"
     databus_endpoint = "https://dev.databus.dbpedia.org/api/publish?fetch-file-properties=true&log-level=debug"
     context_url = "https://dev.databus.dbpedia.org/res/context.jsonld"
     sandbox = "https://sandbox.zenodo.org/"
@@ -310,7 +311,7 @@ class API:
 
         response = requests.post(self.databus_endpoint, headers=header,
                                  data=json.dumps(data))
-        return response
+        return response, data
 
     def publish_file(self, csv_file, metadatajson,
                      version, user=None, depo_id=None):
@@ -345,4 +346,17 @@ class API:
         if res.ok:
             print("published Deposit", depo_id)
             print("Now Record", record_id)
-            return self.to_databus(depo_id, csv_file, metadatajson, version, user)
+            response, data = self.to_databus(depo_id, csv_file, metadatajson, version, user)
+            if response.ok:
+                self.to_moss(data["@graph"][0]["@id"], metadatajson)
+
+    def to_moss(self, databus_uri, metadatajson, data=None):
+
+        files = {"annotationGraph": open(metadatajson, "rb")}
+        data = {
+            "databusURI": databus_uri,
+            "modType": "OEMetadataMod",
+            "modVersion": "1.0.0"
+        }
+        response = requests.post(self.moss_endpoint, files=files, data=data)
+        print(response)
