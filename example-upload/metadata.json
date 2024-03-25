@@ -1,0 +1,322 @@
+{
+    "@context": "https://raw.githubusercontent.com/dbpedia/databus-moss/dev/devenv/context.jsonld",
+    "@id": "https://moss.openenergyplatform.org/g/hedda_gardian/Test/tra_road_mcar_ice_pass_gasoline_1/v1/oemetadata.jsonld",
+    "wasGeneratedBy": {
+        "@id": "https://moss.openenergyplatform.org/g/hedda_gardian/Test/tra_road_mcar_ice_pass_gasoline_1/v1/oemetadata.jsonld#mod",
+        "@type": "moss:OEMetadataMod",
+        "version": "OEP-2.0.0",
+        "used": "https://databus.openenergyplatform.org/hedda_gardian/Test/tra_road_mcar_ice_pass_gasoline_1/v1#tra_road_mcar_ice_pass_gasoline_1_type=data.csv",
+        "license": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    "name": "ind_steel_oxyfu_0",
+    "title": "sedos_ind_steel_oxyfu_0",
+    "id": "https://openenergy-platform.org/dataedit/view/model_draft/ind_steel_oxyfu_0",
+    "description": "Dataset describes scalar techno-economic and scenario data of technology/process: IND.IIS.Blast Oxygen Furnace BOF.Regular.00.",
+    "subject": [
+        {
+            "name": "Industry Sector",
+            "path": "http://openenergy-platform.org/ontology/oeo/OEO_00000227/"
+        },
+        {
+            "name": "Steel",
+            "path": "http://openenergy-platform.org/ontology/oeo/OEO_00240034"
+        }
+    ],
+    "language": [
+        "en-GB"
+    ],
+    "keywords": [
+        "SEDOS",
+        "input_data",
+        "AP7",
+        "Industry",
+        "oedatamodel-parameter"
+    ],
+    "publicationDate": "2024-03-06",
+    "context": {
+        "homepage": "https://sedos-project.github.io/.github/",
+        "documentation": "https://sedos-project.github.io/.github/",
+        "sourceCode": "https://github.com/sedos-project",
+        "contact": "ulrich.fahl@ier.uni-stuttgart.de",
+        "grantNo": null,
+        "fundingAgency": "Bundesministerium f\u00c3\u00bcr Wirtschaft und Klimaschutz (BMWK)",
+        "fundingAgencyLogo": "https://en.wikipedia.org/wiki/Federal_Ministry_for_Economic_Affairs_and_Climate_Action#/media/File:BMWi_Logo_2021.svg",
+        "publisherLogo": null
+    },
+    "spatial": {
+        "location": "Germany",
+        "extent": "DE",
+        "resolution": "NUTS-0"
+    },
+    "temporal": {
+        "referenceDate": "2021",
+        "timeseries": [
+            {
+                "start": "2021-01-01",
+                "end": "2070-12-31",
+                "resolution": "yearly",
+                "alignment": null,
+                "aggregationType": null
+            }
+        ]
+    },
+    "sources": [
+        {
+            "title": "OEDatamodel-parameter",
+            "description": "Parameter data model for secondary input scalars and timeseries",
+            "path": "https://github.com/sedos-project/oedatamodel/tree/main/oedatamodel-parameter",
+            "licenses": [
+                {
+                    "instruction": "You are free: To Share, To Create, To Adapt",
+                    "attribution": null,
+                    "name": "CC0-1.0",
+                    "title": "Creative Commons Zero v1.0 Universal",
+                    "path": "https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+                }
+            ]
+        },
+        {
+            "title": "TAM Industry Model",
+            "description": "TAM Industry is based on TIMES and focuses on German industry energy system",
+            "path": null,
+            "licenses": [
+                {
+                    "instruction": null,
+                    "attribution": "@IER Test",
+                    "name": "TestLicense",
+                    "title": null,
+                    "path": null
+                }
+            ]
+        }
+    ],
+    "licenses": [
+        {
+            "instruction": null,
+            "attribution": null,
+            "name": "TestLicense",
+            "title": null,
+            "path": "https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+        }
+    ],
+    "contributors": [
+        {
+            "title": "Anik Islam",
+            "email": "md-anik.islam@ier.uni-stuttgart.de",
+            "object": "data and metadata for industry",
+            "comment": "Created Metadata",
+            "date": "2024-03-06"
+        },
+        {
+            "title": "Isela Bailey",
+            "email": "isela.bailey@ier.uni-stuttgart.de",
+            "object": "data and metadata for industry",
+            "comment": "Provided Iron and Steel industry test data",
+            "date": "2024-03-06"
+        }
+    ],
+    "resources": [
+        {
+            "profile": "tabular-data-resource",
+            "name": "model_draft.ind_steel_oxyfu_0",
+            "path": "https://openenergy-platform.org/dataedit/view/model_draft/ind_steel_oxyfu_0",
+            "format": "PostgreSQL",
+            "encoding": "UTF-8",
+            "schema": {
+                "primaryKey": [
+                    "id"
+                ],
+                "foreignKeys": [],
+                "fields": [
+                    {
+                        "name": "id",
+                        "description": "Unique identifier",
+                        "type": "bigint",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": null
+                    },
+                    {
+                        "name": "region",
+                        "description": "Country or regionx",
+                        "type": "text",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": null
+                    },
+                    {
+                        "name": "year",
+                        "description": "Year",
+                        "type": "integer",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "a"
+                    },
+                    {
+                        "name": "type",
+                        "description": "Type of process",
+                        "type": "text",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": null
+                    },
+                    {
+                        "name": "capacity_w_abs_new_max",
+                        "description": "Absolute upper bound on level of investment in new weight capacity for a period.",
+                        "type": "float",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "Mt"
+                    },
+                    {
+                        "name": "capacity_w_resid",
+                        "description": "Residual weight capacity of a process.",
+                        "type": "float",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "Mt"
+                    },
+                    {
+                        "name": "conversion_factor_iip_steel_oxygen",
+                        "description": "commodity specific conversion factor (multiplication of input and output factors yields the efficiency of the process)",
+                        "type": "float",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "Mt"
+                    },
+                    {
+                        "name": "conversion_factor_iip_steel_raw_iron",
+                        "description": "commodity specific conversion factor (multiplication of input and output factors yields the efficiency of the process)",
+                        "type": "float",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "Mt"
+                    },
+                    {
+                        "name": "conversion_factor_sec_elec_ind",
+                        "description": "commodity specific conversion factor (multiplication of input and output factors yields the efficiency of the process)",
+                        "type": "float",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "PJ"
+                    },
+                    {
+                        "name": "emissions_factor_sec_methane_ch4",
+                        "description": "Emission factor of specific fuel",
+                        "type": "text",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "Kt/PJ"
+                    },
+                    {
+                        "name": "emissions_factor_sec_methane_co2",
+                        "description": "Emission factor of specific fuel",
+                        "type": "text",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "Kt/PJ"
+                    },
+                    {
+                        "name": "emissions_factor_sec_methane_n2o",
+                        "description": "Emission factor of specific fuel",
+                        "type": "text",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "Kt/PJ"
+                    },
+                    {
+                        "name": "flow_share_sec_hydrogen_max",
+                        "description": "share of flow commodity",
+                        "type": "float",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "percent"
+                    },
+                    {
+                        "name": "lifetime",
+                        "description": "Technical lifetime of a process.",
+                        "type": "float",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "a"
+                    },
+                    {
+                        "name": "conversion_factor_sec_methane",
+                        "description": "commodity specific conversion factor (multiplication of input and output factors yields the efficiency of the process)",
+                        "type": "float",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "PJ"
+                    },
+                    {
+                        "name": "conversion_factor_sec_hydrogen",
+                        "description": "commodity specific conversion factor (multiplication of input and output factors yields the efficiency of the process)",
+                        "type": "float",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": "PJ"
+                    },
+                    {
+                        "name": "bandwidth_type",
+                        "description": "Bandwidth Type",
+                        "type": "json",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": null
+                    },
+                    {
+                        "name": "version",
+                        "description": "Version",
+                        "type": "text",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": null
+                    },
+                    {
+                        "name": "method",
+                        "description": "Method",
+                        "type": "json",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": null
+                    },
+                    {
+                        "name": "source",
+                        "description": "Source",
+                        "type": "json",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": null
+                    },
+                    {
+                        "name": "comment",
+                        "description": "Comment",
+                        "type": "json",
+                        "isAbout": [],
+                        "valueReference": [],
+                        "unit": null
+                    }
+                ]
+            },
+            "dialect": {
+                "delimiter": ";",
+                "decimalSeparator": "."
+            }
+        }
+    ],
+   "review": {
+        "path": null,
+        "badge": null
+    },
+  
+    "_comment": {
+        "metadata": "Metadata documentation and explanation (https://github.com/OpenEnergyPlatform/oemetadata)",
+        "dates": "Dates and time must follow the ISO8601 including time zone (YYYY-MM-DD or YYYY-MM-DDThh:mm:ss\u00b1hh)",
+        "units": "Use a space between numbers and units (100 m)",
+        "languages": "Languages must follow the IETF (BCP47) format (en-GB, en-US, de-DE)",
+        "licenses": "License name must follow the SPDX License List (https://spdx.org/licenses/)",
+        "review": "Following the OEP Data Review (https://github.com/OpenEnergyPlatform/data-preprocessing/blob/master/data-review/manual/review_manual.md)",
+        "null": "If not applicable use: null",
+        "todo": "If a value is not yet available, use: todo"
+    }
+}
