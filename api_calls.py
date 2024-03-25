@@ -4,30 +4,28 @@ import curlify
 import requests
 from os import path
 from dataclasses import dataclass
-from dotenv import load_dotenv
-
-
-def setup_api():
-    load_dotenv()
-    api_key = os.getenv("ACCESS_TOKEN")
-    databus_api_key = os.getenv("DATABUS_API_KEY")
-    wrapper = API(api_key, databus_api_key)
-    return wrapper
+# from dotenv import load_dotenv
 
 
 @dataclass
 class API:
     token: str
     databus_token: str
-    moss_endpoint = "http://localhost:2000/api/annotate"
-    databus_endpoint = "https://dev.databus.dbpedia.org/api/publish?fetch-file-properties=true&log-level=debug"
-    context_url = "https://dev.databus.dbpedia.org/res/context.jsonld"
-    sandbox = "https://sandbox.zenodo.org/"
-    endpoint = "https://zenodo.org/api/"
+    moss_endpoint: str
+    databus_endpoint: str
+    context_url: str
+    sandbox: str
+    zenodo_endpoint: str
 
-    def __init__(self, token, databus_token) -> None:
+    def __init__(self, token, databus_token, moss_endpoint, databus_endpoint,
+                 context_url, sandbox, zenodo_endpoint) -> None:
         self.token = token
         self.databus_token = databus_token
+        self.moss_endpoint = moss_endpoint
+        self.databus_endpoint = databus_endpoint
+        self.context_url = context_url
+        self.sandbox = sandbox
+        self.zenodo_endpoint = zenodo_endpoint
 
     def default_info(self):
         docu_info = '{"metadata": {"title": "My first upload", "upload_type": "poster", "description": "This is my first upload", "creators": [{"name": "Doe, John", "affiliation": "Zenodo"}]}}'
@@ -40,7 +38,7 @@ class API:
         return {"Content-Type": "multipart/form-data"}
 
     def build_url(self, *args):
-        url = path.join(self.endpoint, *args)
+        url = path.join(self.zenodo_endpoint, *args)
         return url
 
     def record_build_url(self, *args):
@@ -211,7 +209,6 @@ class API:
         return response
 
     def publish_deposit(self, deposit_id):
-        # curl -i -X POST https://zenodo.org/api/deposit/depositions/1234/actions/publish?access_token=ACCESS_TOKEN
         route = self.build_publish_url(deposit_id)
         url = self.authenticate(route)
         response = requests.post(url)
@@ -237,8 +234,13 @@ class API:
             locally
         """
         ...
+    
+    def extract_metadata_info(self, metdatajsonfile):
+        with open(metdatajsonfile, "rb") as metafile:
+            return json.load(metafile)
 
-    def generate_databus_input(self, depo_id, metadatajson, hasVersion, user=None):
+    def generate_databus_input(self, depo_id, metadatajson,
+                               hasVersion, user=None):
         file_info = self.get_files_of_record(depo_id)[0]
         with open(metadatajson, "rb") as metafile:
             metadatajson = json.load(metafile)
@@ -268,11 +270,14 @@ class API:
                 "@graph": [
                     {
                         "@type": "Version",
-                        "@id": id,  # TODO: muss version URI sein -> aus der metadatajson die used uri nehmen und alles nach dem fragment nehmen
+                        "@id": id,  # TODO: muss version URI sein
+                                    # aus der metadatajson die used uri nehmen
+                                    # und alles nach dem fragment trimmen
                         "hasVersion": hasVersion,
                         "title": title,
                         "description": description,
-                        "license": license,  # TODO: nimm license aus der metadatajson
+                        "license": license,  # TODO: nimm license
+                                             # aus der metadatajson
                         "distribution": distribution,
                     }
                 ],
@@ -280,24 +285,23 @@ class API:
             return data
 
     def generate_zendodo_input(self, metadatajson):
-        with open(metadatajson, "rb") as file:
-            metadatajson = json.load(file)
-            metadata = {
-                'metadata': {
-                    'title': metadatajson["title"],
-                    'upload_type': 'poster',
-                    'description': metadatajson["description"],
-                    'creators': [
-                        {
-                            'name': 'Doe, John',
-                            'affiliation': 'Script',
-                        },
-                    ],
-                },
-            }
-            return metadata
+        metadata = {
+            'metadata': {
+                'title': metadatajson["title"],
+                'upload_type': 'poster',
+                'description': metadatajson["description"],
+                'creators': [
+                    {
+                        'name': 'Doe, John',
+                        'affiliation': 'Script',
+                    },
+                ],
+            },
+        }
+        return metadata
 
-    def to_databus(self, depo_id, csv_file, metadatajson, hasVersion, user, type="Version"):
+    def to_databus(self, depo_id, csv_file, metadatajson,
+                   hasVersion, user, type="Version"):
 
         header = {
             "Accept": "application/json",
@@ -305,17 +309,21 @@ class API:
             "Content-Type": "application/ld+json",
         }
 
-        data = self.generate_databus_input(depo_id, metadatajson, hasVersion, user)
+        data = self.generate_databus_input(depo_id, metadatajson,
+                                           hasVersion, user)
 
         print(data)
+        return self.databus_upload(data=data, header=header)
 
+    def databus_upload(self, data={}, header={}):
         response = requests.post(self.databus_endpoint, headers=header,
                                  data=json.dumps(data))
         return response, data
 
     def publish_file(self, csv_file, metadatajson,
                      version, user=None, depo_id=None):
-        csv_file, metadatajson, = self.create_complete_file_paths(csv_file, metadatajson)
+        csv_file, metadatajson, = self.create_complete_file_paths(csv_file,
+                                                                  metadatajson)
 
         if not depo_id:
             info = self.create_deposit()
@@ -346,7 +354,9 @@ class API:
         if res.ok:
             print("published Deposit", depo_id)
             print("Now Record", record_id)
-            response, data = self.to_databus(depo_id, csv_file, metadatajson, version, user)
+
+            response, data = self.to_databus(depo_id, csv_file,
+                                             metadatajson, version, user)
             if response.ok:
                 self.to_moss(data["@graph"][0]["@id"], metadatajson)
 
