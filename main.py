@@ -7,27 +7,30 @@ from databus_parser import parse
 from urllib.parse import urlparse, urlunparse
 
 
+# getting values from .env
 def setup_api():
     load_dotenv()
-    API_KEY = os.getenv("ZENODO_ACCESS_TOKEN")
+    ZENODO_API_KEY = os.getenv("ZENODO_ACCESS_TOKEN")
     ZENODO_ENDPOINT = os.getenv("ZENODO_ENDPOINT")
-    SANDBOX = os.getenv("SANDBOX")
+    ZENODO_SANDBOX = os.getenv("ZENODO_SANDBOX")
 
     DATABUS_API_KEY = os.getenv("DATABUS_API_KEY")
     DATABUS_ENDPOINT = os.getenv("DATABUS_ENDPOINT")
-    CONTEXT_URL = os.getenv("CONTEXT_URL")
+    DATABUS_CONTEXT_URL = os.getenv("DATABUS_CONTEXT_URL")
 
     MOSS_ENDPOINT = os.getenv("MOSS_ENDPOINT")
 
-    return API(API_KEY,
+	# TODO reorder args
+	# TODO adjust README for .env
+    return API(ZENODO_API_KEY,
                DATABUS_API_KEY,
                MOSS_ENDPOINT,
                DATABUS_ENDPOINT,
-               CONTEXT_URL,
-               SANDBOX,
+               DATABUS_CONTEXT_URL,
+               ZENODO_SANDBOX,
                ZENODO_ENDPOINT)
 
-
+# loading oemetadata JSON into memory object
 def load_metadata_info(metadatajsonfile):
     metadatajson = None
     with open(metadatajsonfile, "rb") as file:
@@ -38,9 +41,10 @@ def load_metadata_info(metadatajsonfile):
 
     return metadatajson
 
-
+# creating a deposit, then uploading the csv file, then publishing it as record
 def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None):
     success = False
+    # create new deposit, can be skipped for debugging by re-using deposit id
     if not depo_id:
         info = api.create_deposit()
         depo_id = info["id"]
@@ -49,6 +53,7 @@ def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None):
         api.update_deposit(depo_id, metadata=metadata)
 
         try:
+            # uploading the csv file
             response = api.upload_file(depo_id, csv_file)
             print(response)
             success = response.ok
@@ -60,10 +65,12 @@ def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None):
             return None, None, None
         print("Successful Upload on Zenodo", depo_id)
 
+	# finalize deposit into a persisten record
     depo_id = str(depo_id)
     _ = api.publish_deposit(depo_id)
     record_id = api.get_record(depo_id)["id"]
 
+	# getting the download_url for the databus
     file_info = api.get_files_of_record(depo_id)[0]
     download_url = file_info['links']['content']
 
@@ -81,13 +88,15 @@ def upload_to_databus(api, download_url, format_extension, metadatajson,
     if not user:
         user = "prototype"
 
+	#TODO take as much as possible from JSON-LD
     databus_base = "dev.databus.dbpedia.org"
     url = urlparse(metadatajson["wasGeneratedBy"]["used"])
     version = Path(url.path).parts[-1]
     user_replaced_path = os.path.join(user, *Path(url.path).parts[2:])
     id = urlunparse(url._replace(netloc=databus_base, fragment="",
                                  path=user_replaced_path))
-
+	
+	# building the databus data object from the JSON-LD
     data = {
         "@context": api.context_url,
         "@graph": [
@@ -127,6 +136,7 @@ if __name__ == '__main__':
     metadata = load_metadata_info(metadatajsonfile)
 
     # Upload file to Zenodo
+    # set record here for debugging
     record_id = "10844724"
     depo_id = record_id
     if not depo_id:
@@ -138,8 +148,11 @@ if __name__ == '__main__':
         if successful_upload:
             print("Successful upload to Zenodo")
 
-    # Upload publish on Databus
+    print("""******************
+	Upload metadata to Databus
+    *****************""")
     download_url = api.get_files_of_record(record_id)[0]['links']['content']
+    # format_extension is used from local csv file
     format_extension = api._get_extension(csv_file)
     response, data = upload_to_databus(api, download_url, format_extension,
                                        metadata, user=user)
