@@ -28,7 +28,7 @@ class API:
         self.zenodo_endpoint = zenodo_endpoint
 
     def default_info(self):
-        docu_info = '{"metadata": {"title": "My first upload", "upload_type": "poster", "description": "This is my first upload", "creators": [{"name": "Doe, John", "affiliation": "Zenodo"}]}}'
+        docu_info = '{"metadata": {"title": "My first upload", "upload_type": "Dataset", "description": "This is my first upload", "creators": [{"name": "Doe, John", "affiliation": "Zenodo"}]}}'
         return docu_info
 
     def json_content_header(self):
@@ -234,13 +234,15 @@ class API:
             locally
         """
         ...
-    
+
     def extract_metadata_info(self, metdatajsonfile):
         with open(metdatajsonfile, "rb") as metafile:
             return json.load(metafile)
 
     def generate_databus_input(self, depo_id, metadatajson,
-                               hasVersion, user=None):
+                               hasVersion, user=None, debug=False):
+        if debug:
+            depo_id = "10844724"
         file_info = self.get_files_of_record(depo_id)[0]
         with open(metadatajson, "rb") as metafile:
             metadatajson = json.load(metafile)
@@ -288,7 +290,7 @@ class API:
         metadata = {
             'metadata': {
                 'title': metadatajson["title"],
-                'upload_type': 'poster',
+                'upload_type': 'Dataset',
                 'description': metadatajson["description"],
                 'creators': [
                     {
