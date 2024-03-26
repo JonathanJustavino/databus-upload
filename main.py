@@ -40,6 +40,7 @@ def load_metadata_info(metadatajsonfile):
 
 
 def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None):
+    success = False
     if not depo_id:
         info = api.create_deposit()
         depo_id = info["id"]
@@ -50,6 +51,7 @@ def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None):
         try:
             response = api.upload_file(depo_id, csv_file)
             print(response)
+            success = response.ok
         except FileNotFoundError:
             print(f"Wrong File Path for {csv_file}, aborting...")
             _ = api.delete_deposit(depo_id)
@@ -65,7 +67,7 @@ def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None):
     file_info = api.get_files_of_record(depo_id)[0]
     download_url = file_info['links']['content']
 
-    return download_url, record_id
+    return download_url, record_id, success
 
 
 def upload_to_databus(api, download_url, format_extension, metadatajson,
@@ -120,22 +122,27 @@ if __name__ == '__main__':
 
     # Load metadata information
     csv_file, metadatajsonfile, depo_id, user = parse(api)
-    csv_file, metadatajsonfile = api.create_complete_file_paths(csv_file, metadatajsonfile)
-    metadatajson = load_metadata_info(metadatajsonfile)
+    csv_file, metadatajsonfile = api.create_complete_file_paths(csv_file,
+                                                                metadatajsonfile)
+    metadata = load_metadata_info(metadatajsonfile)
 
     # Upload file to Zenodo
     record_id = "10844724"
     depo_id = record_id
     if not depo_id:
-        download_url, record_id = upload_to_zenodo(api, csv_file, metadatajson,
-                                                   depo_id=depo_id)
-        print("Successful upload to Zenodo")
+        download_url, record_id, successful_upload = upload_to_zenodo(api,
+                                                                      csv_file,
+                                                                      metadata,
+                                                                      depo_id=depo_id)
+
+        if successful_upload:
+            print("Successful upload to Zenodo")
 
     # Upload publish on Databus
     download_url = api.get_files_of_record(record_id)[0]['links']['content']
     format_extension = api._get_extension(csv_file)
     response, data = upload_to_databus(api, download_url, format_extension,
-                                       metadatajson, user=user)
+                                       metadata, user=user)
     if response.ok:
         print("Successful upload to Databus")
 

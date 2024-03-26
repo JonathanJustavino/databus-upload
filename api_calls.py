@@ -240,52 +240,46 @@ class API:
             return json.load(metafile)
 
     def generate_databus_input(self, depo_id, metadatajson,
-                               hasVersion, user=None, debug=False):
-        if debug:
-            depo_id = "10844724"
-        file_info = self.get_files_of_record(depo_id)[0]
-        with open(metadatajson, "rb") as metafile:
-            metadatajson = json.load(metafile)
-            distribution = [
+                               user=None, debug=False):
+
+        header = {
+            "Accept": "application/json",
+            "X-API-KEY": self.databus_token,
+            "Content-Type": "application/ld+json",
+        }
+
+        if not user:
+            user = "prototype"
+
+        databus_base = "dev.databus.dbpedia.org"
+        url = urlparse(metadatajson["wasGeneratedBy"]["used"])
+        version = Path(url.path).parts[-1]
+        user_replaced_path = os.path.join(user, *Path(url.path).parts[2:])
+        id = urlunparse(url._replace(netloc=databus_base, fragment="",
+                                    path=user_replaced_path))
+
+        data = {
+            "@context": api.context_url,
+            "@graph": [
                 {
-                    "@type":  "Part",
-                    "compression": "none",
-                    "formatExtension": self._get_extension(file_info["key"]),
-                    "downloadURL": file_info['links']['content']
+                    "@type": "Version",
+                    "@id": id,
+                    "hasVersion": version,
+                    "title": metadatajson["title"],
+                    "description": metadatajson["description"],
+                    "license": metadatajson["licenses"][0]["path"],
+                    "distribution": [{
+                        "@type":  "Part",
+                        "compression": "none",
+                        "formatExtension": format_extension,
+                        "downloadURL": download_url
+                    }],
                 }
-            ]
+            ],
+        }
 
-            id = metadatajson["wasGeneratedBy"]["used"].split('#')[0]
-            # TODO: temp fix for id
-            if not user:
-                user = "prototype"
-            group = "my-group"
-            artifact = "my-artifact"
-            version = hasVersion
-            id = f"https://dev.databus.dbpedia.org/{user}/{group}/{artifact}/{version}"
-            license = metadatajson["wasGeneratedBy"]["license"]
-            description = metadatajson["description"]
-            title = metadatajson["title"]
-
-            data = {
-                "@context": self.context_url,
-                "@graph": [
-                    {
-                        "@type": "Version",
-                        "@id": id,  # TODO: muss version URI sein
-                                    # aus der metadatajson die used uri nehmen
-                                    # und alles nach dem fragment trimmen
-                        "hasVersion": hasVersion,
-                        "title": title,
-                        "description": description,
-                        "license": license,  # TODO: nimm license
-                                             # aus der metadatajson
-                        "distribution": distribution,
-                    }
-                ],
-            }
-            return data
-
+        return self.databus_upload(data=data, header=header)
+                           
     def generate_zendodo_input(self, metadatajson):
         metadata = {
             'metadata': {
