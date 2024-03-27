@@ -1,5 +1,6 @@
 import os
 import json
+import requests
 from pathlib import Path
 from api_calls import API
 from dotenv import load_dotenv
@@ -20,15 +21,14 @@ def setup_api():
 
     MOSS_ENDPOINT = os.getenv("MOSS_ENDPOINT")
 
-	# TODO reorder args
-	# TODO adjust README for .env
     return API(ZENODO_API_KEY,
+               ZENODO_ENDPOINT,
+               ZENODO_SANDBOX,
                DATABUS_API_KEY,
-               MOSS_ENDPOINT,
                DATABUS_ENDPOINT,
                DATABUS_CONTEXT_URL,
-               ZENODO_SANDBOX,
-               ZENODO_ENDPOINT)
+               MOSS_ENDPOINT)
+
 
 # loading oemetadata JSON into memory object
 def load_metadata_info(metadatajsonfile):
@@ -40,6 +40,7 @@ def load_metadata_info(metadatajsonfile):
         raise TypeError("Metadata should not be empty")
 
     return metadatajson
+
 
 # creating a deposit, then uploading the csv file, then publishing it as record
 def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None):
@@ -65,12 +66,12 @@ def upload_to_zenodo(api, csv_file, metadatajson, depo_id=None):
             return None, None, None
         print("Successful Upload on Zenodo", depo_id)
 
-	# finalize deposit into a persisten record
+    # finalize deposit into a persisten record
     depo_id = str(depo_id)
     _ = api.publish_deposit(depo_id)
     record_id = api.get_record(depo_id)["id"]
 
-	# getting the download_url for the databus
+    # getting the download_url for the databus
     file_info = api.get_files_of_record(depo_id)[0]
     download_url = file_info['links']['content']
 
@@ -88,15 +89,15 @@ def upload_to_databus(api, download_url, format_extension, metadatajson,
     if not user:
         user = "prototype"
 
-	#TODO take as much as possible from JSON-LD
+    # TODO take as much as possible from JSON-LD
     databus_base = "dev.databus.dbpedia.org"
     url = urlparse(metadatajson["wasGeneratedBy"]["used"])
     version = Path(url.path).parts[-1]
     user_replaced_path = os.path.join(user, *Path(url.path).parts[2:])
     id = urlunparse(url._replace(netloc=databus_base, fragment="",
                                  path=user_replaced_path))
-	
-	# building the databus data object from the JSON-LD
+
+    # building the databus data object from the JSON-LD
     data = {
         "@context": api.context_url,
         "@graph": [
@@ -120,9 +121,15 @@ def upload_to_databus(api, download_url, format_extension, metadatajson,
     return api.databus_upload(data=data, header=header)
 
 
-def upload_to_moss():
-    # TODO:
-    ...
+def upload_to_moss(api, databus_uri, metadatajson, data=None):
+    files = {"annotationGraph": open(metadatajson, "rb")}
+    data = {
+        "databusURI": databus_uri,
+        "modType": "OEMetadataMod",
+        "modVersion": "1.0.0"
+    }
+    response = requests.post(api.moss_endpoint, files=files, data=data)
+    print(response)
 
 
 if __name__ == '__main__':
@@ -138,19 +145,20 @@ if __name__ == '__main__':
     # Upload file to Zenodo
     # set record here for debugging
     record_id = "10844724"
-    depo_id = record_id
-    if not depo_id:
-        download_url, record_id, successful_upload = upload_to_zenodo(api,
-                                                                      csv_file,
-                                                                      metadata,
-                                                                      depo_id=depo_id)
+    # depo_id = record_id
+    # if not depo_id:
+    #     download_url, record_id, successful_upload = upload_to_zenodo(api,
+    #                                                                   csv_file,
+    #                                                                   metadata,
+    #                                                                   depo_id=depo_id)
 
-        if successful_upload:
-            print("Successful upload to Zenodo")
+    #     if successful_upload:
+    #         print("Successful upload to Zenodo")
 
-    print("""******************
-	Upload metadata to Databus
-    *****************""")
+    # print("""******************
+    # Upload metadata to Databus
+    # *****************""")
+    api.list_all_deposits()
     download_url = api.get_files_of_record(record_id)[0]['links']['content']
     # format_extension is used from local csv file
     format_extension = api._get_extension(csv_file)
@@ -160,4 +168,5 @@ if __name__ == '__main__':
         print("Successful upload to Databus")
 
     # Annotate DatabusURI with Metadata Graph
-    upload_to_moss()
+    databus_uri = data["graph"]["@id"]
+    upload_to_moss(api, databus_uri, metadata)

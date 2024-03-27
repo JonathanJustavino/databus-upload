@@ -4,28 +4,35 @@ import curlify
 import requests
 from os import path
 from dataclasses import dataclass
+from urllib.parse import urlparse, urlunparse
+from pathlib import Path
 # from dotenv import load_dotenv
 
 
 @dataclass
 class API:
-    token: str
-    databus_token: str
-    moss_endpoint: str
-    databus_endpoint: str
-    context_url: str
-    sandbox: str
+    zenodo_token: str
     zenodo_endpoint: str
+    zenodo_sandbox: str
+    databus_token: str
+    databus_endpoint: str
+    databus_context_url: str
+    moss_endpoint: str
 
-    def __init__(self, token, databus_token, moss_endpoint, databus_endpoint,
-                 context_url, sandbox, zenodo_endpoint) -> None:
-        self.token = token
-        self.databus_token = databus_token
-        self.moss_endpoint = moss_endpoint
-        self.databus_endpoint = databus_endpoint
-        self.context_url = context_url
-        self.sandbox = sandbox
+    def __init__(self,
+                 zenodo_token, zenodo_endpoint, zenodo_sandbox,
+                 databus_token, databus_endpoint, databus_context_url,
+                 moss_endpoint) -> None:
+
+        self.zenodo_token = zenodo_token
         self.zenodo_endpoint = zenodo_endpoint
+        self.zenodo_sandbox = zenodo_sandbox
+
+        self.databus_token = databus_token
+        self.databus_endpoint = databus_endpoint
+        self.databus_context_url = databus_context_url
+
+        self.moss_endpoint = moss_endpoint
 
     def default_info(self):
         docu_info = '{"metadata": {"title": "My first upload", "upload_type": "Dataset", "description": "This is my first upload", "creators": [{"name": "Doe, John", "affiliation": "Zenodo"}]}}'
@@ -56,7 +63,7 @@ class API:
         return self.record_build_url(id, "files", *args)
 
     def authenticate(self, url):
-        return f"{url}?access_token={self.token}"
+        return f"{url}?access_token={self.zenodo_token}"
 
     def list_all_deposits(self):
         route = self.build_deposit_url()
@@ -95,7 +102,7 @@ class API:
         route = self.build_deposit_url(identifier)
         url = self.authenticate(route)
 
-        params = {'access_token': self.token, }
+        params = {'access_token': self.zenodo_token, }
         if not metadata:
             raise TypeError("Metadata should not be empty")
 
@@ -239,8 +246,8 @@ class API:
         with open(metdatajsonfile, "rb") as metafile:
             return json.load(metafile)
 
-    def generate_databus_input(self, depo_id, metadatajson,
-                               user=None, debug=False):
+    def generate_databus_input(self, download_url, format_extension,
+                               metadatajson, user=None, debug=False):
 
         header = {
             "Accept": "application/json",
@@ -256,10 +263,10 @@ class API:
         version = Path(url.path).parts[-1]
         user_replaced_path = os.path.join(user, *Path(url.path).parts[2:])
         id = urlunparse(url._replace(netloc=databus_base, fragment="",
-                                    path=user_replaced_path))
+                                     path=user_replaced_path))
 
         data = {
-            "@context": api.context_url,
+            "@context": self.databus_context_url,
             "@graph": [
                 {
                     "@type": "Version",
@@ -279,7 +286,7 @@ class API:
         }
 
         return self.databus_upload(data=data, header=header)
-                           
+
     def generate_zendodo_input(self, metadatajson):
         metadata = {
             'metadata': {

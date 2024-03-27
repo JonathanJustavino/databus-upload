@@ -1,7 +1,8 @@
 # README
 
 ## Setup & Install
-```
+
+```bash
 # For Ubuntu
 sudo apt install python3 python3.10-venv
 # setting venv to "virtualenv"
@@ -9,90 +10,73 @@ python3 -m venv virtualenv
 source virtualenv/bin/activate
 # getting python dependency
 pip install -r requirements.txt
+```
 
-```
 ## Credentials
+
 create an .env file with the api keys
-```
-#zenodo
-ACCESS_TOKEN=XXX
+
+```bash
+# Zenodo
+ZENODO_ACCESS_TOKEN=XXX
+ZENODO_ENDPOINT=XXX
+ZENODO_SANDBOX=XXX
+
+# Databus
 DATABUS_API_KEY=XXX
+DATABUS_ENDPOINT=XXX
+DATABUS_CONTEXT_URL=XXX
+
+# Moss
+MOSS_ENDPOINT=XXX
 ```
 
 ## Quickstart
+
 An example run with a sample csv and json.
 Example files were taken from https://databus.openenergyplatform.org/anik/Industry_test/ind_steel_oxyfu_0/v1
-MOSS Prov-O information was added to metadata.json 
+MOSS Prov-O information was added to metadata.json
 
-```
+```bash
 CSVFILE="example-upload/model_draft__ind_steel_oxyfu_0.csv"
 OEMETADATA="example-upload/metadata.json"
-VERSION="2024-03-06" #used publicationdate?
-DATABUS_USER=prototype
-python3 main.py --complete $CSVFILE $OEMETADATA $VERSION $DATABUS_USER
-
-
+python3 main.py --complete $CSVFILE $OEMETADATA
 ```
-
 
 ## Setup
 
-- Make sure Python3 is installed (3.7 or higher)
+- Make sure `Python3` is installed (3.7 or higher)
   - `sudo apt install python3`
 
 1. Create virtual environment (execute the command venv)
- 
+
 ```shell
-python -m venv /path/to/new/virtual/environment
+python3 -m venv /path/to/new/virtual/environment
 ```
+
 2. Activate virtual environment
 
 ```shell
 source <venv>/bin/activate
 ```
+
 3. Install required packages
 
 ```shell
 pip install -r requirements.txt
 ```
+
 4. Run the program (e.g. python3 main.py --help)
 
 ```shell
-python3 main.py -h
-usage: main.py [-h] [--complete directory Group Artifact Version License] [-c] [-d deposit_id] [-dl deposit_id] [-f deposit_id] [-ul deposit_id] [-ud deposit_id]
-               [-s deposit_id] [-p deposit_id] [-id deposit_id] [-del deposit_id] [-ds] [-rs] [-r record_id] [-rfs record_id] [-rf record_id file_id]
+usage: main.py [-h] [--complete csv_file metadatafile]
+
+Publish on Zenodo and Databus
 
 options:
   -h, --help            show this help message and exit
-  --complete directory Group Artifact Version License
+  --complete csv_file metadatafile
                         Upload on Zenodo and Databus
-  -c, --create_deposit  Create a new Deposit
-  -d deposit_id, --deposit deposit_id
-                        Retrieve a deposit by id
-  -dl deposit_id, --download deposit_id
-                        List all download links of files in a Deposit
-  -f deposit_id, --files deposit_id
-                        List all files of a Deposit
-  -ul deposit_id, --upload deposit_id
-                        Upload a file to a Deposit
-  -ud deposit_id, --update deposit_id
-                        Update a Deposit
-  -s deposit_id, --sync_databus deposit_id
-                        Update a Deposit
-  -p deposit_id, --publish deposit_id
-                        Upload to Databus
-  -id deposit_id, --depo_id deposit_id
-                        deposit_id
-  -del deposit_id, --delete_deposit deposit_id
-                        Delete a deposit by id
-  -ds, --deposits       List all Deposits of a User
-  -rs, --records        List all Records
-  -r record_id, --record record_id
-                        Show a specific Record
-  -rfs record_id, --record_files record_id
-                        Show files from a specific Record
-  -rf record_id file_id, --record_file record_id file_id
-                        Show file from a specific Record
 ```
 
 5. Example: Upload File to Zenodo, publish the Deposit and publish the metadata on the Databus
@@ -103,12 +87,12 @@ and publishes the metadata on the databas specified under the parameters:
 - csv
   - path to the csv that will be uploaded to zenodo
 - metadata.json
-  - path to the metadata.json describing the csv data 
+  - path to the metadata.json describing the csv data
 - version
   - artifact version on the databus
 - (Optional) username
   - if not specified the user name is set to "prototype"
 
 ```bash
-python3 main.py --complete <file-to-csv> <file-to-metadatajson> <version> <optional-user-name>
+python3 main.py --complete <file-to-csv> <file-to-metadatajson>
 ```

@@ -1,20 +1,19 @@
-import json
 import re
+import json
 import argparse
 
 
 def setup_parser():
     parser = argparse.ArgumentParser(description='Publish on Zenodo and Databus')
-    parser.add_argument('--complete', nargs=3,
-                        metavar=("csv_file", "metadatafile", "Version"),
+    parser.add_argument('--complete', nargs=2,
+                        metavar=("csv_file", "metadatafile"),
                         help="Upload on Zenodo and Databus")
-    parser.add_argument('-u', '--user', nargs=1,
-                        metavar=("user"),
-                        help="Specifiy user for databus")
     parser.add_argument('-id', '--depo_id', metavar=("deposit_id"),
                         help="deposit_id")
     parser.add_argument('-ds', '--deposits', action="store_true",
                         help="List all Deposits of a User")
+    parser.add_argument('-m', '--moss', action="store_true",
+                        help="Do tha moss part")
     return parser
 
 
@@ -39,9 +38,8 @@ def parse(api):
     if args.complete:
         arguments = args.complete
         depo_id = args.depo_id
-        user = args.user
-        csv_file, metadata, version = arguments
-        return csv_file, metadata, depo_id, *user
+        csv_file, metadata = arguments
+        return csv_file, metadata, depo_id, "prototype"  # user is prototype
     if args.deposits:
         response = api.list_all_deposits()
         print(response)
