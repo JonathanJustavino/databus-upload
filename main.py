@@ -99,7 +99,7 @@ def upload_to_databus(api, download_url, format_extension, metadatajson,
 
     # building the databus data object from the JSON-LD
     data = {
-        "@context": api.context_url,
+        "@context": api.databus_context_url,
         "@graph": [
             {
                 "@type": "Version",
@@ -121,8 +121,8 @@ def upload_to_databus(api, download_url, format_extension, metadatajson,
     return api.databus_upload(data=data, header=header)
 
 
-def upload_to_moss(api, databus_uri, metadatajson, data=None):
-    files = {"annotationGraph": open(metadatajson, "rb")}
+def upload_to_moss(api, databus_uri, metadatajsonfile, data=None):
+    files = {"annotationGraph": open(metadatajsonfile, "rb")}
     data = {
         "databusURI": databus_uri,
         "modType": "OEMetadataMod",
@@ -130,6 +130,7 @@ def upload_to_moss(api, databus_uri, metadatajson, data=None):
     }
     response = requests.post(api.moss_endpoint, files=files, data=data)
     print(response)
+    return response
 
 
 if __name__ == '__main__':
@@ -158,15 +159,18 @@ if __name__ == '__main__':
     # print("""******************
     # Upload metadata to Databus
     # *****************""")
-    api.list_all_deposits()
     download_url = api.get_files_of_record(record_id)[0]['links']['content']
     # format_extension is used from local csv file
     format_extension = api._get_extension(csv_file)
-    response, data = upload_to_databus(api, download_url, format_extension,
-                                       metadata, user=user)
-    if response.ok:
+    databus_response, data = upload_to_databus(api, download_url,
+                                               format_extension,
+                                               metadata, user=user)
+    if databus_response.ok:
         print("Successful upload to Databus")
 
     # Annotate DatabusURI with Metadata Graph
-    databus_uri = data["graph"]["@id"]
-    upload_to_moss(api, databus_uri, metadata)
+    databus_uri = data["@graph"][0]["@id"]
+    moss_response = upload_to_moss(api, databus_uri, metadatajsonfile)
+
+    if moss_response.ok:
+        print("Successful upload to Databus")

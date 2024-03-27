@@ -6,7 +6,6 @@ from os import path
 from dataclasses import dataclass
 from urllib.parse import urlparse, urlunparse
 from pathlib import Path
-# from dotenv import load_dotenv
 
 
 @dataclass
