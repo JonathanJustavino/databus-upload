@@ -89,7 +89,6 @@ def upload_to_databus(api, download_url, format_extension, metadatajson,
     if not user:
         user = "prototype"
 
-    # TODO take as much as possible from JSON-LD
     databus_base = "dev.databus.dbpedia.org"
     url = urlparse(metadatajson["wasGeneratedBy"]["used"])
     version = Path(url.path).parts[-1]
