@@ -5,7 +5,7 @@
         "@id": "https://moss.openenergyplatform.org/g/prototype/Test/tra_road_mcar_ice_pass_gasoline_1/v1/oemetadata.jsonld#mod",
         "@type": "moss:OEMetadataMod",
         "version": "OEP-2.0.0",
-        "used": "https://databus.openenergyplatform.org/prototype/Test/tra_road_mcar_ice_pass_gasoline_1/v1#tra_road_mcar_ice_pass_gasoline_1_type=data.csv",
+        "used": "https://dev.databus.dbpedia.org/prototype/Test/tra_road_mcar_ice_pass_gasoline_1/v1#tra_road_mcar_ice_pass_gasoline_1_type=data.csv",
         "license": "https://creativecommons.org/publicdomain/zero/1.0/"
     },
     "name": "ind_steel_oxyfu_0",

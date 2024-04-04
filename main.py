@@ -89,12 +89,10 @@ def upload_to_databus(api, download_url, format_extension, metadatajson,
     if not user:
         user = "prototype"
 
-    databus_base = "dev.databus.dbpedia.org"
     url = urlparse(metadatajson["wasGeneratedBy"]["used"])
     version = Path(url.path).parts[-1]
     user_replaced_path = os.path.join(user, *Path(url.path).parts[2:])
-    id = urlunparse(url._replace(netloc=databus_base, fragment="",
-                                 path=user_replaced_path))
+    id = urlunparse(url._replace(fragment="", path=user_replaced_path))
 
     # building the databus data object from the JSON-LD
     data = {
